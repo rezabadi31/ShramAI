@@ -420,6 +420,38 @@ export type FeatureExtractionResponse = {
   vector: Record<string, number>;
 };
 
+export type ModelEvaluationMetrics = {
+  model_name: string;
+  algorithm: string;
+  roc_auc: number;
+  precision: number;
+  recall: number;
+  f1_score: number;
+  rmse: number;
+  r2_score: number;
+  training_time_ms: number;
+  is_champion: boolean;
+};
+
+export type ModelBenchmarkComparison = {
+  models: ModelEvaluationMetrics[];
+  champion_model: string;
+  total_training_samples: number;
+  total_testing_samples: number;
+  benchmark_timestamp: string;
+};
+
+export type RiskPredictionResponse = {
+  establishment_id: string;
+  ml_model: string;
+  risk_score: number;
+  risk_probability: number;
+  priority_class: 'HIGH' | 'MEDIUM' | 'LOW';
+  percentile: string;
+  confidence_score: number;
+  calibrated_action: string;
+};
+
 export type CrossDocumentAnomaly = {
   id: string;
   anomaly_type: string;

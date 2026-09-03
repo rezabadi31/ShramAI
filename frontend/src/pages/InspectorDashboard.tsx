@@ -9,11 +9,13 @@ import {
   Shuffle,
   ShieldCheck,
   Building2,
-  Database
+  Database,
+  Award
 } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
 import { RiskBadge } from '../components/RiskBadge';
 import { SyntheticDataLabModal } from '../components/SyntheticDataLabModal';
+import { ModelBenchmarkModal } from '../components/ModelBenchmarkModal';
 import { Establishment, ActiveRole } from '../types';
 
 interface InspectorDashboardProps {
@@ -29,6 +31,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDataLabOpen, setIsDataLabOpen] = useState(false);
+  const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
 
   const filtered = establishments.filter((e) => {
     if (filter !== 'ALL' && e.risk_category !== filter) return false;
@@ -61,6 +64,13 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsBenchmarkOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs border border-amber-500/30 transition cursor-pointer"
+          >
+            <Award className="w-3.5 h-3.5 text-amber-400" />
+            <span>ML Model Benchmark</span>
+          </button>
           <button
             onClick={() => setIsDataLabOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs border border-cyan-500/30 transition cursor-pointer"
@@ -237,6 +247,12 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       <SyntheticDataLabModal
         isOpen={isDataLabOpen}
         onClose={() => setIsDataLabOpen(false)}
+      />
+
+      {/* ML Model Benchmark Modal */}
+      <ModelBenchmarkModal
+        isOpen={isBenchmarkOpen}
+        onClose={() => setIsBenchmarkOpen(false)}
       />
 
     </div>
