@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     compliance_agent,
     anomalies,
     evidence_graph,
+    dataset,
 )
 
 api_router = APIRouter()
@@ -33,3 +34,4 @@ api_router.include_router(document_agent.router, prefix="/agents/document")
 api_router.include_router(compliance_agent.router, prefix="/agents/compliance")
 api_router.include_router(anomalies.router, prefix="/anomalies")
 api_router.include_router(evidence_graph.router, prefix="/evidence-graph")
+api_router.include_router(dataset.router, prefix="/dataset")

@@ -340,6 +340,59 @@ export type ProvenancePathResponse = {
   provenance_summary: string;
 };
 
+export type EstablishmentRecordSynthetic = {
+  establishment_id: string;
+  name: string;
+  state: string;
+  district: string;
+  industry_sector: string;
+  hazardous_process: boolean;
+  worker_count: number;
+  contract_worker_ratio: number;
+  female_worker_ratio: number;
+  wage_violation_count: number;
+  ot_violation_count: number;
+  deduction_violation_count: number;
+  missing_register_count: number;
+  ghost_worker_count: number;
+  uncompensated_worker_count: number;
+  disbursement_mismatch_count: number;
+  inspection_history_violations: number;
+  grievance_complaint_count: number;
+  ground_truth_risk_score: number;
+  ground_truth_inspection_priority: 'HIGH' | 'MEDIUM' | 'LOW';
+};
+
+export type SectorDistributionItem = {
+  sector: string;
+  count: number;
+  percentage: number;
+};
+
+export type RiskDistributionItem = {
+  priority: string;
+  count: number;
+  percentage: number;
+};
+
+export type DatasetSummaryMetrics = {
+  total_establishments: number;
+  average_worker_count: number;
+  average_risk_score: number;
+  sector_distribution: SectorDistributionItem[];
+  risk_distribution: RiskDistributionItem[];
+  total_violations_simulated: number;
+  total_ghost_workers_simulated: number;
+};
+
+export type DatasetGenerationResponse = {
+  status: string;
+  samples_generated: number;
+  csv_path?: string | null;
+  json_path?: string | null;
+  summary_metrics: DatasetSummaryMetrics;
+};
+
 export type CrossDocumentAnomaly = {
   id: string;
   anomaly_type: string;
