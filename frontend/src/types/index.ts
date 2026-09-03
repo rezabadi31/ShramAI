@@ -393,6 +393,33 @@ export type DatasetGenerationResponse = {
   summary_metrics: DatasetSummaryMetrics;
 };
 
+export type FeatureCategory = 'DEMOGRAPHIC' | 'DETERMINISTIC' | 'ANOMALY' | 'HISTORICAL' | 'INTERACTION';
+
+export type FeatureDefinition = {
+  name: string;
+  label: string;
+  category: FeatureCategory;
+  description: string;
+  formula: string;
+  weight_hint: number;
+};
+
+export type FeatureVectorItem = {
+  name: string;
+  label: string;
+  category: FeatureCategory;
+  raw_value: number;
+  normalized_value: number;
+  formula: string;
+};
+
+export type FeatureExtractionResponse = {
+  establishment_id: string;
+  feature_count: number;
+  features: FeatureVectorItem[];
+  vector: Record<string, number>;
+};
+
 export type CrossDocumentAnomaly = {
   id: string;
   anomaly_type: string;

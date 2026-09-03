@@ -17,11 +17,13 @@ import {
   Sparkles,
   Loader2,
   Cpu,
-  Layers
+  Layers,
+  Binary
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
 import { EvidenceGraphModal } from '../components/EvidenceGraphModal';
+import { RiskFeatureMatrixModal } from '../components/RiskFeatureMatrixModal';
 import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult } from '../types';
 import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies } from '../services/api';
 
@@ -49,6 +51,7 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [complianceAgentAudit, setComplianceAgentAudit] = useState<ComplianceAgentAuditResult | null>(null);
   const [anomalyResult, setAnomalyResult] = useState<CrossDocumentAuditResult | null>(null);
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
+  const [isFeatureModalOpen, setIsFeatureModalOpen] = useState(false);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -100,6 +103,13 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
         </button>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsFeatureModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer"
+          >
+            <Binary className="w-3.5 h-3.5 text-indigo-400" />
+            <span>ML Features</span>
+          </button>
           <button
             onClick={() => setIsGraphModalOpen(true)}
             className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer"
@@ -921,6 +931,13 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
         establishmentId={establishment.id}
         isOpen={isGraphModalOpen}
         onClose={() => setIsGraphModalOpen(false)}
+      />
+
+      {/* 22-Dimensional Risk Feature Matrix Modal */}
+      <RiskFeatureMatrixModal
+        establishmentId={establishment.id}
+        isOpen={isFeatureModalOpen}
+        onClose={() => setIsFeatureModalOpen(false)}
       />
 
     </div>

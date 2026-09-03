@@ -151,7 +151,8 @@ class SyntheticDatasetGenerator:
             )
             records.append(record)
 
-        cls._cached_dataset = records
+        if save_to_disk or len(records) >= len(cls._cached_dataset):
+            cls._cached_dataset = records
         metrics = cls.compute_summary_metrics(records)
 
         csv_path = None
@@ -247,7 +248,7 @@ class SyntheticDatasetGenerator:
     @classmethod
     def get_or_generate_dataset(cls) -> List[EstablishmentRecordSynthetic]:
         """Loads cached dataset or generates 1,000 records if not yet created."""
-        if cls._cached_dataset:
+        if cls._cached_dataset and len(cls._cached_dataset) >= 500:
             return cls._cached_dataset
 
         json_path = Path("data/synthetic_establishments.json")
