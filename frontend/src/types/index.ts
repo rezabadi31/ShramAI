@@ -6,6 +6,26 @@ export type SystemHealth = {
   services: Record<string, string>;
 };
 
+export type Role = 'employer' | 'inspector' | 'admin';
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  designation: string;
+  jurisdiction?: string | null;
+  establishment_id?: string | null;
+};
+
+export type AuthToken = {
+  access_token: string;
+  token_type: string;
+  role: Role;
+  name: string;
+  email: string;
+};
+
 export type Establishment = {
   id: string;
   name: string;
