@@ -51,6 +51,39 @@ export type DocumentRecord = {
   extracted_records: number;
 };
 
+export type ExtractionProvenance = {
+  document_id: string;
+  page: number;
+  table_index: number;
+  confidence: number;
+  bounding_box?: number[] | null;
+};
+
+export type ExtractedTableRow = {
+  row_index: number;
+  values: Record<string, any>;
+  provenance: ExtractionProvenance;
+};
+
+export type ExtractedTable = {
+  table_name: string;
+  headers: string[];
+  rows: ExtractedTableRow[];
+  row_count: number;
+};
+
+export type DocumentIntelligenceResult = {
+  document_id: string;
+  document_type: string;
+  filename: string;
+  pages: number;
+  overall_confidence: number;
+  extraction_method: string;
+  tables: ExtractedTable[];
+  extracted_records_count: number;
+  raw_text_sample: string;
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;

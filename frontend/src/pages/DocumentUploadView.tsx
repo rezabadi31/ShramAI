@@ -5,11 +5,15 @@ import {
   Loader2, 
   FileType, 
   FileText,
-  Download
+  Download,
+  Eye,
+  X,
+  Code2,
+  Table as TableIcon
 } from 'lucide-react';
 import { ProgressBar, ProgressStep } from '../components/ProgressBar';
-import { uploadDocument, fetchUploadedDocuments } from '../services/api';
-import { DocumentRecord } from '../types';
+import { uploadDocument, fetchUploadedDocuments, fetchExtractionResult } from '../services/api';
+import { DocumentRecord, DocumentIntelligenceResult } from '../types';
 
 export const DocumentUploadView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('Wage Register');
@@ -19,6 +23,9 @@ export const DocumentUploadView: React.FC = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [uploadedDocs, setUploadedDocs] = useState<DocumentRecord[]>([]);
   const [uploadError, setUploadError] = useState('');
+  const [activeInspection, setActiveInspection] = useState<DocumentIntelligenceResult | null>(null);
+  const [inspectionViewMode, setInspectionViewMode] = useState<'table' | 'json'>('table');
+  const [loadingInspection, setLoadingInspection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const documentCategories = [
@@ -65,21 +72,30 @@ export const DocumentUploadView: React.FC = () => {
     }, 450);
 
     try {
-      // Real multipart upload to FastAPI backend
       await uploadDocument(selectedFile, selectedCategory, "EST-001");
-      
       clearInterval(progressTimer);
       setCurrentStepIndex(5);
       setIsProcessing(false);
       setProcessComplete(true);
 
-      // Refresh list from backend
       const updatedList = await fetchUploadedDocuments();
       setUploadedDocs(updatedList);
     } catch (err: any) {
       clearInterval(progressTimer);
       setIsProcessing(false);
       setUploadError(err.message || 'Failed to upload document');
+    }
+  };
+
+  const handleInspectDocument = async (docId: string) => {
+    setLoadingInspection(true);
+    try {
+      const result = await fetchExtractionResult(docId);
+      setActiveInspection(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingInspection(false);
     }
   };
 
@@ -91,14 +107,14 @@ export const DocumentUploadView: React.FC = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <UploadCloud className="w-6 h-6 text-emerald-400" />
-            Statutory Document Ingestion & Audit Center
+            Statutory Document Ingestion & Document AI
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Supports digital PDFs, scanned registers, multi-page muster rolls, and payroll sheets
+            Direct PDF Extraction ➔ PaddleOCR Layout Analysis ➔ Structured Tabular Matrices
           </p>
         </div>
         <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">
-          PaddleOCR Engine Active
+          PaddleOCR + Direct Extraction Active
         </span>
       </div>
 
@@ -210,7 +226,7 @@ export const DocumentUploadView: React.FC = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <FileText className="w-4 h-4 text-blue-400" />
-            Uploaded Statutory Documents Registry
+            Uploaded Statutory Documents & Extraction Status
           </h2>
           <span className="text-xs font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
             {uploadedDocs.length} Total Files
@@ -238,6 +254,16 @@ export const DocumentUploadView: React.FC = () => {
                   <div>OCR Conf: {Math.round(doc.ocr_confidence * 100)}%</div>
                   <div className="text-emerald-400 font-semibold">{doc.status}</div>
                 </div>
+
+                <button
+                  onClick={() => handleInspectDocument(doc.id)}
+                  disabled={loadingInspection}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition text-xs font-semibold"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Inspect Tables</span>
+                </button>
+
                 <a
                   href={`/api/v1/documents/${doc.id}/download`}
                   target="_blank"
@@ -252,6 +278,117 @@ export const DocumentUploadView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Extracted Intelligence Inspection Modal */}
+      {activeInspection && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <TableIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-white">Extracted Document Intelligence</h2>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      {activeInspection.extraction_method}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Doc ID: {activeInspection.document_id} • Confidence: {Math.round(activeInspection.overall_confidence * 100)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs">
+                  <button
+                    onClick={() => setInspectionViewMode('table')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition ${
+                      inspectionViewMode === 'table' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Tabular Matrix
+                  </button>
+                  <button
+                    onClick={() => setInspectionViewMode('json')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition ${
+                      inspectionViewMode === 'json' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Structured JSON
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setActiveInspection(null)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {inspectionViewMode === 'table' ? (
+                <div className="space-y-4">
+                  {activeInspection.tables.map((table, tIdx) => (
+                    <div key={tIdx} className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950/60">
+                      <div className="p-3 bg-slate-950 border-b border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-between">
+                        <span>{table.table_name}</span>
+                        <span className="font-mono text-slate-400 text-[11px]">{table.row_count} Rows Extracted</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-900/80 text-slate-400 border-b border-slate-800 font-mono text-[11px]">
+                            <tr>
+                              {table.headers.map((h, hIdx) => (
+                                <th key={hIdx} className="py-2.5 px-3 uppercase tracking-wider">{h}</th>
+                              ))}
+                              <th className="py-2.5 px-3 text-right">Provenance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                            {table.rows.map((r, rIdx) => (
+                              <tr key={rIdx} className="hover:bg-slate-900/40 font-mono text-[11px]">
+                                {table.headers.map((h, cIdx) => (
+                                  <td key={cIdx} className="py-2.5 px-3">
+                                    {r.values[h] !== undefined && r.values[h] !== null ? String(r.values[h]) : '-'}
+                                  </td>
+                                ))}
+                                <td className="py-2.5 px-3 text-right">
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                                    P.{r.provenance.page} • {Math.round(r.provenance.confidence * 100)}%
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
+                    <Code2 className="w-3.5 h-3.5" />
+                    <span>Normalized Canonical Entity Payload (Ready for Rule Engine & LLM RAG):</span>
+                  </div>
+                  <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed">
+                    {JSON.stringify(activeInspection, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
