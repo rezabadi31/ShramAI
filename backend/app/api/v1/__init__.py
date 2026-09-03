@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     agents,
     document_agent,
     compliance_agent,
+    risk_agent,
     anomalies,
     evidence_graph,
     dataset,
@@ -35,6 +36,7 @@ api_router.include_router(compliance.router, prefix="/compliance")
 api_router.include_router(agents.router, prefix="/agents")
 api_router.include_router(document_agent.router, prefix="/agents/document")
 api_router.include_router(compliance_agent.router, prefix="/agents/compliance")
+api_router.include_router(risk_agent.router, prefix="/agents/risk")
 api_router.include_router(anomalies.router, prefix="/anomalies")
 api_router.include_router(evidence_graph.router, prefix="/evidence-graph")
 api_router.include_router(dataset.router, prefix="/dataset")

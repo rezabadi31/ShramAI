@@ -496,6 +496,35 @@ export type ShapGlobalSummaryResponse = {
   top_features: ShapGlobalFeatureImportanceItem[];
 };
 
+export type TacticalEnforcementDirective = {
+  directive_id: string;
+  action_type: string;
+  urgency: string;
+  description: string;
+  statutory_authority: string;
+};
+
+export type RiskAttributionSynthesis = {
+  top_escalators: string[];
+  top_mitigators: string[];
+  synthesis_narrative: string;
+};
+
+export type RiskAgentAuditResult = {
+  establishment_id: string;
+  ml_model_used: string;
+  calibrated_risk_score: number;
+  priority_class: 'HIGH' | 'MEDIUM' | 'LOW';
+  percentile_context: string;
+  confidence_score: number;
+  base_jurisdiction_risk: number;
+  net_shap_escalation: number;
+  attribution_synthesis: RiskAttributionSynthesis;
+  enforcement_directives: TacticalEnforcementDirective[];
+  agent_reasoning: string;
+  timestamp: string;
+};
+
 export type SHAPContribution = {
   feature_name: string;
   feature_label: string;

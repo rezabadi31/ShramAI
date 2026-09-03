@@ -6,6 +6,7 @@ from langgraph.graph import StateGraph, END
 
 from app.agents.state import ShramAuditState
 from app.agents.document_agent import DocumentAgentService
+from app.agents.risk_agent import RiskAgentService
 from app.compliance.compliance_checker import ComplianceCheckerService
 from app.schemas.agent_state import AgentNodeName, WorkflowStatus
 
@@ -127,41 +128,41 @@ def compliance_agent_node(state: ShramAuditState) -> Dict[str, Any]:
 
 def risk_agent_node(state: ShramAuditState) -> Dict[str, Any]:
     """
-    Risk Agent: Computes feature vector and calculates risk score using ML model formula.
+    Risk Agent: Evaluates calibrated XGBoost risk score and TreeSHAP attribution.
+    Directive: 'ML MODEL determines score. LLM explains score.'
     """
     state["current_node"] = AgentNodeName.RISK_AGENT.value
     findings = state.get("rule_findings", [])
     violation_count = sum(1 for f in findings if f.get("status") == "FAILED")
-    worker_count = 420
 
-    # Deterministic risk model computation
-    # High risk when >= 3 violations or severe minimum wage failure
-    base_prob = 0.40 + (violation_count * 0.15) + (worker_count / 2000.0)
-    risk_prob = min(max(base_prob, 0.05), 0.98)
-    risk_score = round(risk_prob * 100.0, 1)
+    audit_res = RiskAgentService.evaluate_establishment_risk(
+        establishment_id=state["establishment_id"],
+        worker_count=420,
+        wage_violation_count=violation_count,
+    )
 
-    if risk_score >= 75.0:
-        risk_category = "HIGH"
-    elif risk_score >= 50.0:
-        risk_category = "MEDIUM"
-    else:
-        risk_category = "LOW"
+    top_esc = audit_res.attribution_synthesis.top_escalators[0] if audit_res.attribution_synthesis.top_escalators else "N/A"
 
     record_step(
         state,
         AgentNodeName.RISK_AGENT.value,
-        f"Computed risk score {risk_score}/100 ({risk_category}) based on {violation_count} deterministic violations and {worker_count} headcount",
-        {"risk_score": risk_score, "risk_category": risk_category}
+        f"Evaluated ML risk score {audit_res.calibrated_risk_score}/100 ({audit_res.priority_class}) via {audit_res.ml_model_used}. Top driver: {top_esc}",
+        {
+            "risk_score": audit_res.calibrated_risk_score,
+            "risk_category": audit_res.priority_class,
+            "percentile": audit_res.percentile_context,
+            "directives_count": len(audit_res.enforcement_directives),
+        }
     )
 
     return {
-        "risk_score": risk_score,
-        "risk_category": risk_category,
+        "risk_score": audit_res.calibrated_risk_score,
+        "risk_category": audit_res.priority_class,
         "risk_features": {
-            "violation_count": violation_count,
-            "worker_count": worker_count,
-            "wage_deficit_detected": True,
-            "missing_registers_count": 1,
+            "ml_model": audit_res.ml_model_used,
+            "base_jurisdiction_risk": audit_res.base_jurisdiction_risk,
+            "net_shap_escalation": audit_res.net_shap_escalation,
+            "directives": [d.model_dump() for d in audit_res.enforcement_directives],
         }
     }
 

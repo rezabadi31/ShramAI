@@ -20,14 +20,15 @@ import {
   Layers,
   Binary,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  ShieldAlert
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
 import { EvidenceGraphModal } from '../components/EvidenceGraphModal';
 import { RiskFeatureMatrixModal } from '../components/RiskFeatureMatrixModal';
-import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse } from '../types';
-import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation } from '../services/api';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse, RiskAgentAuditResult } from '../types';
+import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -55,6 +56,8 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [isFeatureModalOpen, setIsFeatureModalOpen] = useState(false);
   const [shapExplanation, setShapExplanation] = useState<ShapLocalExplanationResponse | null>(null);
+  const [riskAgentResult, setRiskAgentResult] = useState<RiskAgentAuditResult | null>(null);
+  const [isRiskAgentRunning, setIsRiskAgentRunning] = useState(false);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -78,6 +81,10 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
     getEstablishmentShapExplanation(establishment.id).then(res => {
       setShapExplanation(res);
     }).catch(err => console.error(err));
+
+    runRiskAgentAudit(establishment.id).then(res => {
+      setRiskAgentResult(res);
+    }).catch(err => console.error(err));
   }, [establishment.id]);
 
   const handleRunOrchestrator = async () => {
@@ -89,6 +96,18 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
       console.error(e);
     } finally {
       setIsOrchestrating(false);
+    }
+  };
+
+  const handleRunRiskAgent = async () => {
+    setIsRiskAgentRunning(true);
+    try {
+      const res = await runRiskAgentAudit(establishment.id);
+      setRiskAgentResult(res);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRiskAgentRunning(false);
     }
   };
 
@@ -123,6 +142,23 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
           >
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
             <span>Evidence Graph</span>
+          </button>
+          <button
+            onClick={handleRunRiskAgent}
+            disabled={isRiskAgentRunning}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-rose-500/20 transition cursor-pointer disabled:opacity-50"
+          >
+            {isRiskAgentRunning ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Risk Agent Evaluating...</span>
+              </>
+            ) : (
+              <>
+                <ShieldAlert className="w-3.5 h-3.5 text-white" />
+                <span>Run Risk Agent</span>
+              </>
+            )}
           </button>
           <button
             onClick={handleRunOrchestrator}
@@ -227,6 +263,63 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
                 <p className="text-[11px] text-slate-300 leading-tight">
                   {s.action_taken}
                 </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Risk Agent Tactical Enforcement Mandate Card */}
+      {riskAgentResult && (
+        <div className="glass-panel p-5 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-950/20 via-slate-900 to-amber-950/20 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  Risk Agent: Calibrated Tactical Enforcement Mandate
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Grounding: {riskAgentResult.ml_model_used} • Actuarial Baseline: {riskAgentResult.base_jurisdiction_risk} pts
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <RiskBadge category={riskAgentResult.priority_class} score={riskAgentResult.calibrated_risk_score} size="sm" />
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-amber-300">
+                {riskAgentResult.percentile_context}
+              </span>
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400 font-bold">
+                {(riskAgentResult.confidence_score * 100).toFixed(0)}% Conf
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed font-sans">
+            {riskAgentResult.attribution_synthesis.synthesis_narrative}
+          </p>
+
+          {/* Directives Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {riskAgentResult.enforcement_directives.map((dir) => (
+              <div key={dir.directive_id} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    {dir.urgency}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">{dir.directive_id}</span>
+                </div>
+                <h4 className="text-xs font-bold text-slate-100 uppercase font-mono">
+                  {dir.action_type.replace(/_/g, ' ')}
+                </h4>
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  {dir.description}
+                </p>
+                <div className="text-[10px] font-mono text-amber-400/90 pt-1 border-t border-slate-800/80">
+                  {dir.statutory_authority}
+                </div>
               </div>
             ))}
           </div>
