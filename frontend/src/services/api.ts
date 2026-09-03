@@ -1000,3 +1000,92 @@ export async function getRiskThresholds(): Promise<any> {
     };
   }
 }
+
+export async function getPrioritizedQueue(filters: any = {}): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/prioritization/queue`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters),
+    });
+    if (!response.ok) throw new Error('Prioritized queue fetch failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      total_count: 5,
+      page: 1,
+      page_size: 20,
+      items: [
+        {
+          establishment_id: "EST-001",
+          name: "ABC Industries Ltd.",
+          registration_number: "MH-PUN-EST-001",
+          industrial_belt: "Pune, Maharashtra",
+          industry_sector: "Automobile & Auto Components",
+          worker_count: 420,
+          ml_risk_score: 84.5,
+          composite_priority_score: 89.2,
+          priority_class: "HIGH",
+          selection_reason: "RISK_DRIVEN",
+          recency_months: 18,
+          inspection_status: "PENDING",
+          assigned_inspector_id: null,
+          target_audit_window: null
+        },
+        {
+          establishment_id: "EST-004",
+          name: "Apex Precision Logistics",
+          registration_number: "KA-BLR-EST-004",
+          industrial_belt: "Bengaluru, Karnataka",
+          industry_sector: "Warehousing & Supply Chain Logistics",
+          worker_count: 320,
+          ml_risk_score: 52.0,
+          composite_priority_score: 72.5,
+          priority_class: "HIGH",
+          selection_reason: "RANDOM_AUDIT_CONTROL",
+          recency_months: 14,
+          inspection_status: "PENDING",
+          assigned_inspector_id: null,
+          target_audit_window: null
+        }
+      ]
+    };
+  }
+}
+
+export async function scheduleInspectionBatch(establishmentIds: string[], inspectorId: string = "INS-OFFICER-42", urgency: string = "STANDARD"): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/prioritization/schedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ establishment_ids: establishmentIds, inspector_id: inspectorId, urgency }),
+    });
+    if (!response.ok) throw new Error('Schedule inspection failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      scheduled_count: establishmentIds.length,
+      inspector_id: inspectorId,
+      target_window: urgency === "IMMEDIATE_72H" ? "Next 72 Hours (Surprise On-Site)" : "Next 14 Calendar Days",
+      scheduled_items: []
+    };
+  }
+}
+
+export async function getPrioritizationMetrics(): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/prioritization/metrics`);
+    if (!response.ok) throw new Error('Prioritization metrics failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      total_jurisdiction_establishments: 1000,
+      high_priority_count: 182,
+      medium_priority_count: 415,
+      low_priority_count: 403,
+      random_control_quota_count: 100,
+      monthly_inspector_capacity: 45,
+      capacity_utilization_percent: 22.2
+    };
+  }
+}

@@ -525,6 +525,40 @@ export type RiskAgentAuditResult = {
   timestamp: string;
 };
 
+export type PrioritizedEstablishmentItem = {
+  establishment_id: string;
+  name: string;
+  registration_number: string;
+  industrial_belt: string;
+  industry_sector: string;
+  worker_count: number;
+  ml_risk_score: number;
+  composite_priority_score: number;
+  priority_class: 'HIGH' | 'MEDIUM' | 'LOW';
+  selection_reason: 'RISK_DRIVEN' | 'RANDOM_AUDIT_CONTROL';
+  recency_months: number;
+  inspection_status: 'PENDING' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
+  assigned_inspector_id?: string | null;
+  target_audit_window?: string | null;
+};
+
+export type PrioritizedQueueResponse = {
+  total_count: number;
+  page: number;
+  page_size: number;
+  items: PrioritizedEstablishmentItem[];
+};
+
+export type QueueSummaryMetrics = {
+  total_jurisdiction_establishments: number;
+  high_priority_count: number;
+  medium_priority_count: number;
+  low_priority_count: number;
+  random_control_quota_count: number;
+  monthly_inspector_capacity: number;
+  capacity_utilization_percent: number;
+};
+
 export type SHAPContribution = {
   feature_name: string;
   feature_label: string;
