@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
-import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse } from '../types';
-import { evaluateCompliance, runAgentOrchestration } from '../services/api';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult } from '../types';
+import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -43,12 +43,17 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [liveAuditReport, setLiveAuditReport] = useState<ComplianceAuditReport | null>(null);
   const [orchestrationResult, setOrchestrationResult] = useState<OrchestrationExecutionResponse | null>(null);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
+  const [docAuditResult, setDocAuditResult] = useState<DocumentAgentAuditResult | null>(null);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
   useEffect(() => {
     evaluateCompliance(establishment.id).then(report => {
       setLiveAuditReport(report);
+    }).catch(err => console.error(err));
+
+    auditEstablishmentDocuments(establishment.id).then(res => {
+      setDocAuditResult(res);
     }).catch(err => console.error(err));
   }, [establishment.id]);
 
@@ -290,44 +295,134 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
         </div>
       )}
 
-      {/* Tab 2: DOCUMENTS */}
+      {/* Tab 2: DOCUMENTS & STATUTORY GAP ANALYSIS */}
       {activeTab === 'documents' && (
-        <div className="glass-panel rounded-2xl border border-slate-800 p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-400" />
-                Audited Statutory Registers & Proof Files
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Parsed using Direct PDF Text Layer + PaddleOCR Layout Analysis
-              </p>
-            </div>
-            <button
-              onClick={() => onNavigate('upload')}
-              className="text-xs text-blue-400 hover:text-blue-300 font-semibold"
-            >
-              + Upload Additional Records
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {documents.map((doc) => (
-              <div key={doc.id} className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-200">{doc.document_type}</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    OCR Conf: {Math.round(doc.ocr_confidence * 100)}%
+        <div className="space-y-6">
+          
+          {/* Autonomous Document Agent Gap Analysis Card */}
+          {docAuditResult && (
+            <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <FileCheck2 className="w-4 h-4 text-emerald-400" />
+                    Autonomous Document Agent Statutory Filing Audit
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Evaluates scan legibility, structural completeness, and compares uploaded registers against legally mandated filings
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Legibility: {docAuditResult.overall_legibility_score}% ({docAuditResult.legibility_status})
+                  </span>
+                  <span className="text-xs font-mono px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Completeness: {docAuditResult.completeness_score}%
                   </span>
                 </div>
-                <p className="text-xs font-mono text-slate-400 truncate">{doc.filename}</p>
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] text-slate-500 font-mono">
-                  <span>{doc.pages} Pages • {doc.extracted_records} Rows Extracted</span>
-                  <span>Uploaded: {doc.upload_date}</span>
+              </div>
+
+              {/* Missing Statutory Registers Warning */}
+              {docAuditResult.missing_count > 0 && (
+                <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-500/30 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-rose-300">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    <span>Statutory Default Warning: {docAuditResult.missing_count} Mandatory Register(s) Missing</span>
+                  </div>
+                  <ul className="text-xs text-rose-200/80 space-y-1 list-disc list-inside">
+                    {docAuditResult.missing_registers_penalties.map((pen, pIdx) => (
+                      <li key={pIdx} className="font-mono text-[11px]">{pen}</li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-slate-300 pt-1 border-t border-rose-900/50">
+                    <strong>Agent Recommendation:</strong> {docAuditResult.agent_recommendation}
+                  </p>
+                </div>
+              )}
+
+              {/* Statutory Registers Matrix Table */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">
+                  Statutory Register Filing Compliance Matrix (Four Labour Codes):
+                </h3>
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-900 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
+                      <tr>
+                        <th className="p-3">Form</th>
+                        <th className="p-3">Statutory Register</th>
+                        <th className="p-3">Governing Code & Section</th>
+                        <th className="p-3">Filing Frequency</th>
+                        <th className="p-3">Filing Status</th>
+                        <th className="p-3">Statutory Penalty on Default</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {docAuditResult.register_comparisons.map((reg, rIdx) => (
+                        <tr key={rIdx} className="hover:bg-slate-900/40 transition">
+                          <td className="p-3 font-mono font-bold text-amber-400">{reg.form_designation}</td>
+                          <td className="p-3 text-slate-200 font-medium">{reg.register_name}</td>
+                          <td className="p-3 text-slate-400 font-mono text-[11px]">{reg.statute} • {reg.section}</td>
+                          <td className="p-3 text-slate-400">{reg.filing_frequency}</td>
+                          <td className="p-3">
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold border ${
+                              reg.status === 'SUBMITTED'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                            }`}>
+                              {reg.status}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-slate-400">{reg.penalty_on_default}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ))}
+
+            </div>
+          )}
+
+          {/* Uploaded Files Matrix */}
+          <div className="glass-panel rounded-2xl border border-slate-800 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-400" />
+                  Audited Uploaded Documents & Text Extraction Proofs
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Parsed using Direct PDF Text Layer + PaddleOCR Layout Analysis
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigate('upload')}
+                className="text-xs text-blue-400 hover:text-blue-300 font-semibold"
+              >
+                + Upload Additional Records
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {documents.map((doc) => (
+                <div key={doc.id} className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-200">{doc.document_type}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      OCR Conf: {Math.round(doc.ocr_confidence * 100)}%
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono text-slate-400 truncate">{doc.filename}</p>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] text-slate-500 font-mono">
+                    <span>{doc.pages} Pages • {doc.extracted_records} Rows Extracted</span>
+                    <span>Uploaded: {doc.upload_date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+
         </div>
       )}
 

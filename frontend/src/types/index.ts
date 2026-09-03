@@ -188,6 +188,35 @@ export type OrchestrationExecutionResponse = {
   ai_inspection_brief: Record<string, any>;
 };
 
+export type RegisterComparisonItem = {
+  register_id: string;
+  register_name: string;
+  form_designation: string;
+  statute: string;
+  section: string;
+  mandatory: boolean;
+  status: 'SUBMITTED' | 'MISSING' | 'INCOMPLETE';
+  filing_frequency: string;
+  penalty_on_default: string;
+  citation: string;
+  submitted_document_id?: string | null;
+  completeness_score: number;
+};
+
+export type DocumentAgentAuditResult = {
+  establishment_id: string;
+  audit_timestamp: string;
+  overall_legibility_score: number;
+  legibility_status: 'EXCELLENT' | 'ADEQUATE' | 'DEGRADED' | 'UNREADABLE';
+  completeness_score: number;
+  total_required_registers: number;
+  submitted_count: number;
+  missing_count: number;
+  register_comparisons: RegisterComparisonItem[];
+  missing_registers_penalties: string[];
+  agent_recommendation: string;
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;

@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional
 from langgraph.graph import StateGraph, END
 
 from app.agents.state import ShramAuditState
+from app.agents.document_agent import DocumentAgentService
 from app.compliance.compliance_checker import ComplianceCheckerService
 from app.schemas.agent_state import AgentNodeName, WorkflowStatus
 
@@ -55,10 +56,16 @@ def supervisor_node(state: ShramAuditState) -> Dict[str, Any]:
 
 def document_agent_node(state: ShramAuditState) -> Dict[str, Any]:
     """
-    Document Agent: Ingests documents, extracts structured tables, and normalizes canonical records.
+    Document Agent: Ingests documents, extracts structured tables, evaluates legibility, and normalizes canonical records.
     """
     state["current_node"] = AgentNodeName.DOCUMENT_AGENT.value
     
+    # Run Document Agent audit for legibility, completeness, and missing registers
+    doc_audit = DocumentAgentService.run_document_audit(
+        establishment_id=state["establishment_id"],
+        worker_count=420,
+    )
+
     # Canonical wage records representing Form B register
     canonical_wages = [
         {"employee_id": "EMP-001", "employee_name": "Ramesh Kumar", "daily_wage_rate": 650.0, "gross_wages": 18200.0, "total_deductions": 2000.0, "overtime_hours": 8.0, "overtime_wages": 1300.0},
@@ -70,12 +77,17 @@ def document_agent_node(state: ShramAuditState) -> Dict[str, Any]:
     record_step(
         state,
         AgentNodeName.DOCUMENT_AGENT.value,
-        f"Normalized {len(canonical_wages)} canonical employee wage records from Form B register",
-        {"record_count": len(canonical_wages), "quality_score": 0.96}
+        f"Verified legibility ({doc_audit.overall_legibility_score}%) and normalized {len(canonical_wages)} Form B wage records. Missing {doc_audit.missing_count} mandatory register(s).",
+        {
+            "record_count": len(canonical_wages),
+            "legibility_score": doc_audit.overall_legibility_score,
+            "completeness_score": doc_audit.completeness_score,
+            "missing_registers_count": doc_audit.missing_count,
+        }
     )
 
     return {
-        "normalized_records": {"wage_records": canonical_wages, "document_count": 3},
+        "normalized_records": {"wage_records": canonical_wages, "document_count": len(doc_audit.register_comparisons)},
         "documents": [
             {"filename": "Wage_Register_Oct2024.pdf", "category": "Wage Register", "pages": 14},
             {"filename": "Muster_Roll_Oct2024.pdf", "category": "Attendance Register", "pages": 8},
