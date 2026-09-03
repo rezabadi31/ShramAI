@@ -566,6 +566,52 @@ export type SHAPContribution = {
   direction: 'positive' | 'negative';
 };
 
+export type StatutoryExposureItem = {
+  code_name: string;
+  section: string;
+  contravention: string;
+  penalty_provision: string;
+};
+
+export type RemediationStepItem = {
+  step_number: number;
+  action: string;
+  deadline: string;
+  statutory_cure: string;
+  estimated_financial_arrears: string;
+};
+
+export type InspectorExplanationBrief = {
+  establishment_id: string;
+  risk_score: number;
+  priority_class: string;
+  executive_summary: string;
+  statutory_exposures: StatutoryExposureItem[];
+  mandatory_documents_to_seize: string[];
+  cross_examination_checklist: string[];
+  investigation_focus_areas: string[];
+};
+
+export type EmployerRemediationPlan = {
+  establishment_id: string;
+  advisory_summary: string;
+  root_cause_analysis: string[];
+  remediation_steps: RemediationStepItem[];
+  safe_harbour_guidelines: string[];
+  total_estimated_arrears_inr: number;
+};
+
+export type ComprehensiveExplanationResponse = {
+  establishment_id: string;
+  establishment_name: string;
+  ml_risk_score: number;
+  priority_class: string;
+  inspector_brief: InspectorExplanationBrief;
+  employer_remediation: EmployerRemediationPlan;
+  zero_hallucination_verified: boolean;
+  timestamp: string;
+};
+
 export type EstablishmentDossier = {
   establishment: Establishment;
   documents: DocumentRecord[];
