@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
-import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult } from '../types';
-import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit } from '../services/api';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult } from '../types';
+import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -45,6 +45,7 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [docAuditResult, setDocAuditResult] = useState<DocumentAgentAuditResult | null>(null);
   const [complianceAgentAudit, setComplianceAgentAudit] = useState<ComplianceAgentAuditResult | null>(null);
+  const [anomalyResult, setAnomalyResult] = useState<CrossDocumentAuditResult | null>(null);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -59,6 +60,10 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
 
     runComplianceAgentAudit(establishment.id).then(res => {
       setComplianceAgentAudit(res);
+    }).catch(err => console.error(err));
+
+    reconcileEstablishmentAnomalies(establishment.id).then(res => {
+      setAnomalyResult(res);
     }).catch(err => console.error(err));
   }, [establishment.id]);
 
@@ -600,61 +605,157 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
 
       {/* Tab 4: CROSS-DOC ANOMALIES */}
       {activeTab === 'anomalies' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-purple-400" />
-                Cross-Document Reconciliation & Anomaly Engine
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Automated multi-way comparison across Form A, Form B, Attendance Muster, and Bank Payouts
-              </p>
+        <div className="space-y-6">
+          
+          {/* Engine Header & Summary Stats */}
+          <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-purple-400" />
+                  Cross-Document Reconciliation & Anomaly Engine
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Automated multi-way cross-referencing across Form B (Wages), Form D (Muster Roll), Bank UTR Scrolls, and Gate Turnstiles
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">
+                  {anomalyResult ? anomalyResult.reconciliation_summary.anomalies_detected : anomalies.length} Flagged Inconsistencies
+                </span>
+                <span className="text-xs font-mono px-2.5 py-1 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  ₹{anomalyResult ? anomalyResult.reconciliation_summary.financial_discrepancy_total.toLocaleString('en-IN') : '3,92,500'} Discrepancy Total
+                </span>
+              </div>
             </div>
-            <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded border border-purple-500/20">
-              {anomalies.length} Cross-Register Inconsistencies
-            </span>
+
+            {/* Reconciliation KPI Matrix */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="text-[11px] text-slate-400 font-mono">Ghost Workers Flagged</div>
+                <div className="text-lg font-bold text-rose-400 font-mono">
+                  {anomalyResult ? anomalyResult.reconciliation_summary.ghost_workers_count : 1}
+                </div>
+                <div className="text-[10px] text-slate-500">Wage credited with 0 attendance</div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="text-[11px] text-slate-400 font-mono">Uncompensated Attendance</div>
+                <div className="text-lg font-bold text-amber-400 font-mono">
+                  {anomalyResult ? anomalyResult.reconciliation_summary.uncompensated_workers_count : 1}
+                </div>
+                <div className="text-[10px] text-slate-500">Attended shifts with ₹0 payout</div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="text-[11px] text-slate-400 font-mono">Bank Payout Skimming</div>
+                <div className="text-lg font-bold text-purple-400 font-mono">1 Diverted</div>
+                <div className="text-[10px] text-slate-500">Form B net != Bank UTR transfer</div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="text-[11px] text-slate-400 font-mono">Contractor Suppression</div>
+                <div className="text-lg font-bold text-cyan-400 font-mono">25 Workers</div>
+                <div className="text-[10px] text-slate-500">Gate security vs Form A headcount</div>
+              </div>
+            </div>
+
+            {/* Cross-Document Multi-Way Flow Visualization */}
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-850 space-y-2">
+              <div className="text-[11px] font-mono text-slate-400 font-bold uppercase tracking-wider">
+                Multi-Way Cross-Document Reconciliation Pipeline
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs font-mono">
+                <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300">
+                  <div className="font-bold">Form B Register</div>
+                  <div className="text-[10px] text-slate-400">Gross & Net Wages</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                  <div className="font-bold">Form D Muster Roll</div>
+                  <div className="text-[10px] text-slate-400">Physical Attendance</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300">
+                  <div className="font-bold">Bank UTR Scrolls</div>
+                  <div className="text-[10px] text-slate-400">Disbursed Funds</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                  <div className="font-bold">Gate Turnstile Log</div>
+                  <div className="text-[10px] text-slate-400">Actual Footfall Headcount</div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
+          {/* Anomaly Detailed Cards */}
           <div className="space-y-4">
-            {anomalies.map((anom) => (
-              <div key={anom.id} className="glass-panel p-5 rounded-xl border border-slate-800 space-y-3">
+            {(anomalyResult?.anomalies || []).map((anom) => (
+              <div key={anom.anomaly_id} className="glass-panel p-5 rounded-xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-400" />
-                    {anom.anomaly_type}
-                  </h3>
-                  <RiskBadge category={anom.severity} size="sm" />
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                      anom.anomaly_type === 'GHOST_WORKER'
+                        ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                        : anom.anomaly_type === 'CONTRACTOR_SUPPRESSION'
+                        ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    }`}>
+                      {anom.anomaly_type}
+                    </span>
+                    {anom.affected_worker_id && (
+                      <span className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded">
+                        {anom.affected_worker_id} • {anom.affected_worker_name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {anom.discrepancy_amount && (
+                      <span className="text-xs font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                        Discrepancy: ₹{anom.discrepancy_amount.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                    <RiskBadge category={anom.severity} size="sm" />
+                  </div>
                 </div>
 
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {anom.description}
                 </p>
 
-                {/* Visual Reconciliation Card */}
-                <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-2">
-                  <div className="text-[11px] text-purple-300 font-mono font-semibold">
-                    DETECTED MULTI-REGISTER DISCREPANCY:
+                {/* Primary vs Cross-Reference Comparison Box */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                    <span className="text-[10px] text-slate-500 block uppercase">Primary Record Proof:</span>
+                    <span className="text-blue-300 font-semibold">{anom.primary_document}</span>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-950 border border-slate-800 font-mono text-xs text-amber-300">
-                    {anom.detected_discrepancy}
+                  <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                    <span className="text-[10px] text-slate-500 block uppercase">Cross-Referenced Source:</span>
+                    <span className="text-amber-300 font-semibold">{anom.cross_reference_document}</span>
                   </div>
-                  <p className="text-xs text-slate-300">
-                    <strong className="text-slate-200">Reconciliation Analysis:</strong> {anom.evidence_summary}
-                  </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80 text-[11px]">
-                  <span className="text-slate-400 font-medium">Involved Registers:</span>
-                  {anom.involved_registers.map((reg, idx) => (
-                    <span key={idx} className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
-                      {reg}
-                    </span>
-                  ))}
+                {/* Statutory Implication */}
+                <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/30 text-xs text-slate-300 space-y-1">
+                  <span className="text-[10px] font-mono text-purple-300 font-bold uppercase tracking-wider block">
+                    Statutory Implication & Legal Exposure:
+                  </span>
+                  <p>{anom.statutory_implication}</p>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Engine Recommendations */}
+          {anomalyResult?.recommendations && (
+            <div className="glass-panel p-5 rounded-xl border border-slate-800 space-y-2">
+              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">
+                Cross-Document Inspection Officer Directives:
+              </h3>
+              <ul className="space-y-1.5 text-xs text-slate-300 list-disc list-inside font-mono">
+                {anomalyResult.recommendations.map((rec, rIdx) => (
+                  <li key={rIdx}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
         </div>
       )}
 

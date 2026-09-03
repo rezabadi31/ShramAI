@@ -274,6 +274,41 @@ export type ComplianceFinding = {
   status: 'PENDING_VERIFICATION' | 'CONFIRMED' | 'REJECTED';
 };
 
+export type CrossDocumentAnomalyItem = {
+  anomaly_id: string;
+  anomaly_type: 'GHOST_WORKER' | 'UNCOMPENSATED_ATTENDANCE' | 'DISBURSEMENT_MISMATCH' | 'OVERTIME_HOURS_DISCREPANCY' | 'CONTRACTOR_SUPPRESSION';
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  primary_document: string;
+  cross_reference_document: string;
+  description: string;
+  discrepancy_amount?: number | null;
+  affected_worker_id?: string | null;
+  affected_worker_name?: string | null;
+  statutory_implication: string;
+};
+
+export type ReconciliationSummary = {
+  records_reconciled: number;
+  anomalies_detected: number;
+  financial_discrepancy_total: number;
+  ghost_workers_count: number;
+  uncompensated_workers_count: number;
+};
+
+export type CrossDocumentAuditResult = {
+  establishment_id: string;
+  audit_timestamp: string;
+  reconciliation_summary: {
+    records_reconciled: number;
+    anomalies_detected: number;
+    financial_discrepancy_total: number;
+    ghost_workers_count: number;
+    uncompensated_workers_count: number;
+  };
+  anomalies: CrossDocumentAnomalyItem[];
+  recommendations: string[];
+};
+
 export type CrossDocumentAnomaly = {
   id: string;
   anomaly_type: string;
