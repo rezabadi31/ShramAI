@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     documents,
     extraction,
     classification,
+    normalization,
 )
 
 api_router = APIRouter()
@@ -15,3 +16,4 @@ api_router.include_router(establishments.router, prefix="/establishments")
 api_router.include_router(documents.router, prefix="/documents")
 api_router.include_router(extraction.router, prefix="/documents")
 api_router.include_router(classification.router, prefix="/documents")
+api_router.include_router(normalization.router, prefix="/documents")

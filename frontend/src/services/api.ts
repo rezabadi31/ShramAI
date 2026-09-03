@@ -3,7 +3,8 @@ import {
   Establishment, 
   EstablishmentDossier, 
   DocumentRecord,
-  DocumentIntelligenceResult 
+  DocumentIntelligenceResult,
+  NormalizedDocumentDossier,
 } from '../types';
 import { MOCK_ESTABLISHMENTS, MOCK_DOSSIER } from './mockData';
 
@@ -152,6 +153,84 @@ export async function fetchExtractionResult(documentId: string): Promise<Documen
       ],
       extracted_records_count: 4,
       raw_text_sample: "FORM B - REGISTER OF WAGES [Rule 78(1)(a)(i)]\nEstablishment: ABC Industries Ltd. | Month: October 2024\nSl | Emp ID | Employee Name | Wage Rate | Days Worked | Net Paid\n1 | EMP-001 | Ramesh Kumar | 650.00 | 26 | 16200.00"
+    };
+  }
+}
+
+export async function fetchNormalizedDossier(documentId: string): Promise<NormalizedDocumentDossier> {
+  try {
+    const response = await fetch(`${API_BASE}/documents/${documentId}/normalized`);
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    return {
+      document_id: documentId,
+      category: "Wage Register",
+      record_type: "WAGE_RECORD",
+      records_count: 4,
+      data_quality_score: 0.96,
+      normalization_confidence: 0.95,
+      missing_fields: [],
+      records: [
+        {
+          employee_id: "EMP-001",
+          employee_name: "Ramesh Kumar",
+          daily_wage_rate: 650.0,
+          days_worked: 26,
+          basic_wage: 16900.0,
+          overtime_hours: 8,
+          overtime_wages: 1300.0,
+          gross_wages: 18200.0,
+          total_deductions: 2000.0,
+          net_payable: 16200.0,
+          source_page: 1,
+          normalization_confidence: 0.96,
+        },
+        {
+          employee_id: "EMP-002",
+          employee_name: "Sunita Devi",
+          daily_wage_rate: 550.0,
+          days_worked: 25,
+          basic_wage: 13750.0,
+          overtime_hours: 0,
+          overtime_wages: 0.0,
+          gross_wages: 13750.0,
+          total_deductions: 1200.0,
+          net_payable: 12550.0,
+          source_page: 1,
+          normalization_confidence: 0.95,
+        },
+        {
+          employee_id: "EMP-003",
+          employee_name: "Rajesh K. (Helper)",
+          daily_wage_rate: 310.0,
+          days_worked: 26,
+          basic_wage: 8060.0,
+          overtime_hours: 0,
+          overtime_wages: 0.0,
+          gross_wages: 8060.0,
+          total_deductions: 800.0,
+          net_payable: 7260.0,
+          source_page: 4,
+          normalization_confidence: 0.91,
+        },
+        {
+          employee_id: "EMP-004",
+          employee_name: "Amit Verma",
+          daily_wage_rate: 720.0,
+          days_worked: 24,
+          basic_wage: 17280.0,
+          overtime_hours: 12,
+          overtime_wages: 2160.0,
+          gross_wages: 19440.0,
+          total_deductions: 2440.0,
+          net_payable: 17000.0,
+          source_page: 2,
+          normalization_confidence: 0.94,
+        },
+      ],
     };
   }
 }

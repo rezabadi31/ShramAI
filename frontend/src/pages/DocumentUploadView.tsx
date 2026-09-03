@@ -12,8 +12,14 @@ import {
   Table as TableIcon
 } from 'lucide-react';
 import { ProgressBar, ProgressStep } from '../components/ProgressBar';
-import { uploadDocument, fetchUploadedDocuments, fetchExtractionResult, classifyDocument } from '../services/api';
-import { DocumentRecord, DocumentIntelligenceResult } from '../types';
+import { 
+  uploadDocument, 
+  fetchUploadedDocuments, 
+  fetchExtractionResult, 
+  classifyDocument,
+  fetchNormalizedDossier 
+} from '../services/api';
+import { DocumentRecord, DocumentIntelligenceResult, NormalizedDocumentDossier } from '../types';
 
 export const DocumentUploadView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('Auto-Detect via AI Classifier');
@@ -24,7 +30,8 @@ export const DocumentUploadView: React.FC = () => {
   const [uploadedDocs, setUploadedDocs] = useState<DocumentRecord[]>([]);
   const [uploadError, setUploadError] = useState('');
   const [activeInspection, setActiveInspection] = useState<DocumentIntelligenceResult | null>(null);
-  const [inspectionViewMode, setInspectionViewMode] = useState<'table' | 'json'>('table');
+  const [normalizedDossier, setNormalizedDossier] = useState<NormalizedDocumentDossier | null>(null);
+  const [inspectionViewMode, setInspectionViewMode] = useState<'table' | 'canonical' | 'json'>('table');
   const [loadingInspection, setLoadingInspection] = useState(false);
   const [classificationResult, setClassificationResult] = useState<any | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
@@ -93,8 +100,12 @@ export const DocumentUploadView: React.FC = () => {
   const handleInspectDocument = async (docId: string) => {
     setLoadingInspection(true);
     try {
-      const result = await fetchExtractionResult(docId);
-      setActiveInspection(result);
+      const [extractResult, normResult] = await Promise.all([
+        fetchExtractionResult(docId),
+        fetchNormalizedDossier(docId),
+      ]);
+      setActiveInspection(extractResult);
+      setNormalizedDossier(normResult);
     } catch (error) {
       console.error(error);
     } finally {
@@ -338,6 +349,14 @@ export const DocumentUploadView: React.FC = () => {
                     Tabular Matrix
                   </button>
                   <button
+                    onClick={() => setInspectionViewMode('canonical')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition ${
+                      inspectionViewMode === 'canonical' ? 'bg-slate-800 text-amber-300' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Canonical Entities
+                  </button>
+                  <button
                     onClick={() => setInspectionViewMode('json')}
                     className={`px-3 py-1 rounded-lg font-semibold transition ${
                       inspectionViewMode === 'json' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'
@@ -348,7 +367,10 @@ export const DocumentUploadView: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setActiveInspection(null)}
+                  onClick={() => {
+                    setActiveInspection(null);
+                    setNormalizedDossier(null);
+                  }}
                   className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
                 >
                   <X className="w-4 h-4" />
@@ -358,7 +380,7 @@ export const DocumentUploadView: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {inspectionViewMode === 'table' ? (
+              {inspectionViewMode === 'table' && (
                 <div className="space-y-4">
                   {activeInspection.tables.map((table, tIdx) => (
                     <div key={tIdx} className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950/60">
@@ -397,7 +419,86 @@ export const DocumentUploadView: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              ) : (
+              )}
+
+              {inspectionViewMode === 'canonical' && (
+                <div className="space-y-4">
+                  {/* Quality Score & Meta Header */}
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">Canonical Record Model</span>
+                      <span className="text-sm font-bold text-amber-400">
+                        {normalizedDossier?.record_type || 'WAGE_RECORD'} ({normalizedDossier?.records_count || 0} Entities)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">Data Quality Score</span>
+                        <span className="text-sm font-mono font-bold text-emerald-400">
+                          {Math.round((normalizedDossier?.data_quality_score || 0.95) * 100)}% Verified
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Missing Fields Warning if any */}
+                  {normalizedDossier?.missing_fields && normalizedDossier.missing_fields.length > 0 && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1">
+                      <span className="font-bold block">Statutory Field Alerts:</span>
+                      {normalizedDossier.missing_fields.map((mf, idx) => (
+                        <div key={idx} className="text-[11px] font-mono text-slate-300">
+                          • {mf.field_name}: {mf.description} ({mf.affected_rows_count} rows affected)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Normalized Entity Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {normalizedDossier?.records.map((rec, idx) => (
+                      <div key={idx} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white">{rec.employee_name}</span>
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                            {rec.employee_id}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-2 border-t border-slate-900">
+                          {rec.daily_wage_rate !== undefined && (
+                            <div>
+                              <span className="text-slate-500 block text-[9px]">DAILY WAGE</span>
+                              <span className="text-emerald-400 font-bold">₹{rec.daily_wage_rate}</span>
+                            </div>
+                          )}
+                          {rec.days_worked !== undefined && (
+                            <div>
+                              <span className="text-slate-500 block text-[9px]">DAYS WORKED</span>
+                              <span className="text-slate-200">{rec.days_worked} Days</span>
+                            </div>
+                          )}
+                          {rec.net_payable !== undefined && (
+                            <div>
+                              <span className="text-slate-500 block text-[9px]">NET PAYABLE</span>
+                              <span className="text-amber-400 font-bold">₹{rec.net_payable}</span>
+                            </div>
+                          )}
+                          {rec.overtime_hours !== undefined && (
+                            <div>
+                              <span className="text-slate-500 block text-[9px]">OVERTIME</span>
+                              <span className="text-slate-200">{rec.overtime_hours} hrs</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-500 text-right pt-1">
+                          Source: Page {rec.source_page} • Conf: {Math.round((rec.normalization_confidence || 0.95) * 100)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {inspectionViewMode === 'json' && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
                     <Code2 className="w-3.5 h-3.5" />

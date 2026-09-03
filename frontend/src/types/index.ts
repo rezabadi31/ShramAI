@@ -84,6 +84,24 @@ export type DocumentIntelligenceResult = {
   raw_text_sample: string;
 };
 
+export type MissingFieldFlag = {
+  field_name: string;
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  description: string;
+  affected_rows_count: number;
+};
+
+export type NormalizedDocumentDossier = {
+  document_id: string;
+  category: string;
+  record_type: string;
+  records_count: number;
+  data_quality_score: number;
+  normalization_confidence: number;
+  missing_fields: MissingFieldFlag[];
+  records: Record<string, any>[];
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;
