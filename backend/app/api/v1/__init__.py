@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     normalization,
     knowledge,
     rag,
+    compliance,
 )
 
 api_router = APIRouter()
@@ -21,3 +22,4 @@ api_router.include_router(classification.router, prefix="/documents")
 api_router.include_router(normalization.router, prefix="/documents")
 api_router.include_router(knowledge.router, prefix="/knowledge")
 api_router.include_router(rag.router, prefix="/rag")
+api_router.include_router(compliance.router, prefix="/compliance")

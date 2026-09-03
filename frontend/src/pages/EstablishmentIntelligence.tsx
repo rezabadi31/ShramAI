@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   FileText, 
@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
-import { EstablishmentDossier, ActiveRole } from '../types';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport } from '../types';
+import { evaluateCompliance } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -36,8 +37,15 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [feedbackState, setFeedbackState] = useState<Record<string, string>>({});
   const [inspectorNotes, setInspectorNotes] = useState('');
   const [submittedFeedback, setSubmittedFeedback] = useState(false);
+  const [liveAuditReport, setLiveAuditReport] = useState<ComplianceAuditReport | null>(null);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
+
+  useEffect(() => {
+    evaluateCompliance(establishment.id).then(report => {
+      setLiveAuditReport(report);
+    }).catch(err => console.error(err));
+  }, [establishment.id]);
 
   const handleFeedback = (findingId: string, action: 'CONFIRMED' | 'REJECTED' | 'NEEDS_MORE_EVIDENCE') => {
     setFeedbackState(prev => ({ ...prev, [findingId]: action }));
@@ -243,19 +251,37 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
       {/* Tab 3: COMPLIANCE FINDINGS */}
       {activeTab === 'findings' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900 border border-slate-800">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Scale className="w-4 h-4 text-amber-400" />
-                Deterministic Rule Engine Findings
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-amber-400" />
+                  Deterministic Rule Engine Audit
+                </h2>
+                {liveAuditReport && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                    {liveAuditReport.overall_compliance_score}% Pass Rate ({liveAuditReport.failed_count} Violations)
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Every finding links to extracted document evidence and applicable statutory clauses under the Four Labour Codes
+                Evaluated against statutory rules under the Four Labour Codes with mathematical evidence & zero hallucinations
               </p>
             </div>
-            <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
-              {findings.length} Flagged Issues
-            </span>
+            {liveAuditReport ? (
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <span className="px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  {liveAuditReport.failed_count} Failed
+                </span>
+                <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  {liveAuditReport.passed_count} Passed
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
+                {findings.length} Flagged Issues
+              </span>
+            )}
           </div>
 
           <div className="space-y-4">

@@ -143,6 +143,29 @@ export type LabourCodeSummary = {
   mandatory_registers: string[];
 };
 
+export type RuleEvaluationFinding = {
+  rule_id: string;
+  rule_name: string;
+  status: 'PASSED' | 'FAILED' | 'WARNING';
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  statutory_reference: string;
+  authority: string;
+  evidence: string;
+  affected_entities_count: number;
+  affected_entity_ids: string[];
+};
+
+export type ComplianceAuditReport = {
+  establishment_id: string;
+  audit_timestamp: string;
+  total_rules_evaluated: number;
+  passed_count: number;
+  failed_count: number;
+  warning_count: number;
+  overall_compliance_score: number;
+  findings: RuleEvaluationFinding[];
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;
