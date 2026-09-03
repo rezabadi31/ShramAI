@@ -21,7 +21,8 @@ import {
   Binary,
   TrendingUp,
   TrendingDown,
-  ShieldAlert
+  ShieldAlert,
+  ClipboardList
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
@@ -34,6 +35,7 @@ interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
   onBack: () => void;
   onNavigate: (role: ActiveRole) => void;
+  onBeginInspection?: () => void;
 }
 
 type TabType = 'overview' | 'documents' | 'findings' | 'anomalies' | 'shap' | 'brief' | 'feedback';
@@ -42,6 +44,7 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   dossier,
   onBack,
   onNavigate,
+  onBeginInspection,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [feedbackState, setFeedbackState] = useState<Record<string, string>>({});
@@ -184,6 +187,15 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
             )}
           </button>
           <span className="text-xs text-slate-400 font-mono">Dossier ID: DOS-{establishment.id}</span>
+          {onBeginInspection && (
+            <button
+              onClick={onBeginInspection}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
+            >
+              <ClipboardList className="w-3.5 h-3.5" />
+              <span>Begin Field Inspection</span>
+            </button>
+          )}
         </div>
       </div>
 

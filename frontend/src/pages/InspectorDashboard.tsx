@@ -25,11 +25,13 @@ interface InspectorDashboardProps {
   establishments: Establishment[];
   onSelectEstablishment: (id: string) => void;
   onNavigate?: (role: ActiveRole) => void;
+  onBeginInspection?: (id: string, name: string) => void;
 }
 
 export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   establishments,
   onSelectEstablishment,
+  onBeginInspection,
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>('ALL');
   const [reasonFilter, setReasonFilter] = useState<'ALL' | 'RISK_DRIVEN' | 'RANDOM_AUDIT_CONTROL'>('ALL');
@@ -328,16 +330,29 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectEstablishment(item.establishment_id);
-                          }}
-                          className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-semibold bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-md border border-blue-500/20 transition"
-                        >
-                          <span>Investigate</span>
-                          <ArrowUpRight className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectEstablishment(item.establishment_id);
+                            }}
+                            className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-semibold bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-md border border-blue-500/20 transition"
+                          >
+                            <span>Investigate</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </button>
+                          {onBeginInspection && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onBeginInspection(item.establishment_id, item.name);
+                              }}
+                              className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-md border border-emerald-500/20 transition"
+                            >
+                              <span>Begin Inspection</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

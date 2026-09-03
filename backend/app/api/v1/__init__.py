@@ -23,6 +23,7 @@ from app.api.v1.endpoints import (
     prioritization,
     explanation,
     employer,
+    inspection,
 )
 
 api_router = APIRouter()
@@ -49,3 +50,4 @@ api_router.include_router(shap.router, prefix="/ml/shap")
 api_router.include_router(prioritization.router, prefix="/prioritization")
 api_router.include_router(explanation.router, prefix="/explanation")
 api_router.include_router(employer.router, prefix="/employer")
+api_router.include_router(inspection.router, prefix="/inspection")

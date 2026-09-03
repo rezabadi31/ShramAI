@@ -6,6 +6,7 @@ import { InspectorDashboard } from './pages/InspectorDashboard';
 import { EstablishmentIntelligence } from './pages/EstablishmentIntelligence';
 import { DocumentUploadView } from './pages/DocumentUploadView';
 import { AIAssistantDrawer } from './pages/AIAssistantDrawer';
+import { InspectionWorkflow } from './pages/InspectionWorkflow';
 import { LoginPage } from './pages/LoginPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { fetchHealth, fetchEstablishments, fetchEstablishmentDossier } from './services/api';
@@ -21,6 +22,7 @@ function AppContent() {
   const [selectedDossier, setSelectedDossier] = useState<EstablishmentDossier>(MOCK_DOSSIER);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [inspectionTarget, setInspectionTarget] = useState<{id: string; name: string} | null>(null);
 
   useEffect(() => {
     fetchHealth().then(setHealth);
@@ -34,7 +36,7 @@ function AppContent() {
   };
 
   // RBAC Guard: If user is Employer trying to access Inspector queue/intelligence
-  const isInspectorRoute = activeRole === 'inspector' || activeRole === 'establishment-detail';
+  const isInspectorRoute = activeRole === 'inspector' || activeRole === 'establishment-detail' || activeRole === 'inspection-workflow';
   const isBlockedForEmployer = isInspectorRoute && user?.role === 'employer';
 
   return (
@@ -101,6 +103,10 @@ function AppContent() {
                 establishments={establishments}
                 onSelectEstablishment={handleSelectEstablishment}
                 onNavigate={(role) => setActiveRole(role)}
+                onBeginInspection={(id: string, name: string) => {
+                  setInspectionTarget({ id, name });
+                  setActiveRole('inspection-workflow');
+                }}
               />
             )}
 
@@ -109,6 +115,18 @@ function AppContent() {
                 dossier={selectedDossier}
                 onBack={() => setActiveRole('inspector')}
                 onNavigate={(role) => setActiveRole(role)}
+                onBeginInspection={() => {
+                  setInspectionTarget({ id: selectedDossier.establishment.id, name: selectedDossier.establishment.name });
+                  setActiveRole('inspection-workflow');
+                }}
+              />
+            )}
+
+            {activeRole === 'inspection-workflow' && inspectionTarget && (
+              <InspectionWorkflow
+                establishmentId={inspectionTarget.id}
+                establishmentName={inspectionTarget.name}
+                onBack={() => setActiveRole('inspector')}
               />
             )}
 

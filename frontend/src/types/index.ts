@@ -635,7 +635,7 @@ export type EstablishmentDossier = {
   };
 };
 
-export type ActiveRole = 'landing' | 'employer' | 'inspector' | 'establishment-detail' | 'upload';
+export type ActiveRole = 'landing' | 'employer' | 'inspector' | 'establishment-detail' | 'upload' | 'inspection-workflow';
 
 export type RegisterStatusItem = {
   name: string;

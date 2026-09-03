@@ -9,7 +9,7 @@
       "f1_score": 0.8333,
       "rmse": 6.654,
       "r2_score": 0.8901,
-      "training_time_ms": 123.0,
+      "training_time_ms": 115.5,
       "is_champion": true
     },
     {
@@ -21,7 +21,7 @@
       "f1_score": 0.8333,
       "rmse": 6.928,
       "r2_score": 0.8809,
-      "training_time_ms": 303.6,
+      "training_time_ms": 305.3,
       "is_champion": false
     },
     {
@@ -33,12 +33,12 @@
       "f1_score": 0.9231,
       "rmse": 14.235,
       "r2_score": 0.4969,
-      "training_time_ms": 34.8,
+      "training_time_ms": 34.4,
       "is_champion": false
     }
   ],
   "champion_model": "XGBoost v3.2 (Histogram GBDT)",
   "total_training_samples": 80,
   "total_testing_samples": 20,
-  "benchmark_timestamp": "2026-09-03 15:14:35"
+  "benchmark_timestamp": "2026-09-03 15:27:32"
 }
