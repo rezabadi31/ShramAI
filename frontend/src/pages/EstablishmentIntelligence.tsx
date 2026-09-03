@@ -13,12 +13,15 @@ import {
   CheckCircle2,
   ArrowLeft,
   ShieldCheck,
-  AlertOctagon
+  AlertOctagon,
+  Sparkles,
+  Loader2,
+  Cpu
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
-import { EstablishmentDossier, ActiveRole, ComplianceAuditReport } from '../types';
-import { evaluateCompliance } from '../services/api';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse } from '../types';
+import { evaluateCompliance, runAgentOrchestration } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -38,6 +41,8 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [inspectorNotes, setInspectorNotes] = useState('');
   const [submittedFeedback, setSubmittedFeedback] = useState(false);
   const [liveAuditReport, setLiveAuditReport] = useState<ComplianceAuditReport | null>(null);
+  const [orchestrationResult, setOrchestrationResult] = useState<OrchestrationExecutionResponse | null>(null);
+  const [isOrchestrating, setIsOrchestrating] = useState(false);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -46,6 +51,18 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
       setLiveAuditReport(report);
     }).catch(err => console.error(err));
   }, [establishment.id]);
+
+  const handleRunOrchestrator = async () => {
+    setIsOrchestrating(true);
+    try {
+      const res = await runAgentOrchestration(establishment.id);
+      setOrchestrationResult(res);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsOrchestrating(false);
+    }
+  };
 
   const handleFeedback = (findingId: string, action: 'CONFIRMED' | 'REJECTED' | 'NEEDS_MORE_EVIDENCE') => {
     setFeedbackState(prev => ({ ...prev, [findingId]: action }));
@@ -64,7 +81,24 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
           <span>Back to Inspection Priority Queue</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRunOrchestrator}
+            disabled={isOrchestrating}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-purple-500/20 transition cursor-pointer disabled:opacity-50"
+          >
+            {isOrchestrating ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Running LangGraph...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Run Agentic AI Audit</span>
+              </>
+            )}
+          </button>
           <span className="text-xs text-slate-400 font-mono">Dossier ID: DOS-{establishment.id}</span>
         </div>
       </div>
@@ -107,6 +141,55 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
           </div>
         </div>
       </div>
+
+      {/* Multi-Agent Orchestrator Stepper Banner */}
+      {orchestrationResult && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/30 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-300">
+                <Cpu className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                  LangGraph Agentic Orchestrator Execution Completed
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {orchestrationResult.status}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-mono">
+                  Workflow: {orchestrationResult.workflow_id} • Execution Time: {orchestrationResult.execution_time_ms}ms • {orchestrationResult.steps_completed} Checkpoints
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-amber-400">
+                Compliance: {orchestrationResult.compliance_score}%
+              </span>
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-rose-400">
+                Risk Score: {orchestrationResult.risk_score} ({orchestrationResult.risk_category})
+              </span>
+            </div>
+          </div>
+
+          {/* Stepper Node Transitions */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+            {orchestrationResult.steps.map((s, idx) => (
+              <div key={idx} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5 hover:border-purple-500/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 font-bold border border-purple-500/20">
+                    {s.node_name}
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-500">#{s.step_index}</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  {s.action_taken}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs Bar */}
       <div className="border-b border-slate-800 flex items-center gap-2 overflow-x-auto pb-1">

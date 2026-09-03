@@ -166,6 +166,28 @@ export type ComplianceAuditReport = {
   findings: RuleEvaluationFinding[];
 };
 
+export type AgentExecutionStep = {
+  step_index: number;
+  node_name: string;
+  action_taken: string;
+  timestamp: string;
+  details: Record<string, any>;
+};
+
+export type OrchestrationExecutionResponse = {
+  workflow_id: string;
+  establishment_id: string;
+  status: string;
+  steps_completed: number;
+  execution_time_ms: number;
+  compliance_score: number;
+  risk_score: number;
+  risk_category: string;
+  findings_count: number;
+  steps: AgentExecutionStep[];
+  ai_inspection_brief: Record<string, any>;
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;
