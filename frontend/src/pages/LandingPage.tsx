@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   ShieldCheck, 
   FileText, 
@@ -10,10 +10,12 @@ import {
   ArrowRight,
   Building2,
   FileSearch,
-  CheckCircle2,
-  Lock
+  Lock,
+  BookOpen,
+  X
 } from 'lucide-react';
 import { ActiveRole, SystemHealth } from '../types';
+import { fetchCodeDetails } from '../services/api';
 
 interface LandingPageProps {
   onNavigate: (role: ActiveRole) => void;
@@ -21,6 +23,17 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, health: _health }) => {
+  const [selectedCodeDetails, setSelectedCodeDetails] = useState<any | null>(null);
+
+  const handleOpenCode = async (codeId: string) => {
+    try {
+      const details = await fetchCodeDetails(codeId);
+      setSelectedCodeDetails(details);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const pipelineStages = [
     { title: "Statutory Registers", desc: "Form A/B/C/D, Wage, Attendance, Muster Rolls", icon: FileText, color: "text-blue-400" },
     { title: "Document Intelligence", desc: "Digital Extraction with PaddleOCR Fallback", icon: Cpu, color: "text-cyan-400" },
@@ -32,10 +45,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, health: _h
   ];
 
   const labourCodes = [
-    { name: "Code on Wages, 2019", code: "WAGE", desc: "Minimum wages, statutory bonus, payment timeliness, overtime calculation.", tag: "Form B Wages" },
-    { name: "Industrial Relations Code, 2020", code: "IR", desc: "Worker definitions, grievance redressal, standing orders, dispute terms.", tag: "Standing Orders" },
-    { name: "Code on Social Security, 2020", code: "SS", desc: "EPFO, ESIC, gratuity eligibility, gig/platform worker welfare contributions.", tag: "Muster & PF" },
-    { name: "OSH&WC Code, 2020", code: "OSH", desc: "Working hours, shift rosters, factory safety audits, contractor licensing.", tag: "Safety & Health" },
+    { code_id: "wages_2019", name: "Code on Wages, 2019", act: "Act No. 29 of 2019", key_areas: "Floor Wage, Universal Minimum Wage, Double Overtime, 50% Deduction Ceiling, Form A/B Registers", authority: "Chief Labour Commissioner (Central)" },
+    { code_id: "ir_2020", name: "Industrial Relations Code, 2020", act: "Act No. 35 of 2020", key_areas: "Trade Union Recognition, Standing Orders (300+ Threshold), Works Committee, Retrenchment", authority: "Industrial Tribunals / Conciliation Officers" },
+    { code_id: "ss_2020", name: "Code on Social Security, 2020", act: "Act No. 36 of 2020", key_areas: "EPFO (20+), ESIC (10+), Gratuity (Fixed-Term Pro-Rata), 26-Wk Maternity, Gig Worker Welfare", authority: "EPFO / ESIC Regional Commissioners" },
+    { code_id: "oshwc_2020", name: "OSH & Working Conditions Code, 2020", act: "Act No. 37 of 2020", key_areas: "Factory Threshold (20/40), Safety Committee (250+), 8 Hr Daily Limit, Health Checkups", authority: "Directorate General Factory Advice (DGFASLI)" }
   ];
 
   return (
@@ -121,20 +134,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, health: _h
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {labourCodes.map((code, idx) => (
-            <div key={idx} className="glass-panel p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between">
-              <div className="space-y-2">
+            <div 
+              key={idx} 
+              onClick={() => handleOpenCode(code.code_id)}
+              className="glass-panel p-5 rounded-2xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900/80 transition flex flex-col justify-between cursor-pointer group shadow-lg"
+            >
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                    {code.code}
+                  <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    {code.act}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">{code.tag}</span>
+                  <BookOpen className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition" />
                 </div>
-                <h3 className="font-semibold text-sm text-slate-100">{code.name}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{code.desc}</p>
+                <h3 className="font-bold text-sm text-slate-100 group-hover:text-amber-300 transition">{code.name}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">{code.key_areas}</p>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center text-[11px] text-slate-400 font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mr-1.5" />
-                <span>Deterministic Rules Active</span>
+              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-medium group-hover:text-amber-300">
+                <span>Explore Statutory Sections</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
               </div>
             </div>
           ))}
@@ -177,6 +194,111 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, health: _h
           })}
         </div>
       </div>
+
+      {/* Statutory Code Explorer Modal */}
+      {selectedCodeDetails && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-white">{selectedCodeDetails.summary?.title}</h2>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {selectedCodeDetails.summary?.act_number}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {selectedCodeDetails.summary?.total_sections} Sections across {selectedCodeDetails.summary?.total_chapters} Chapters
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedCodeDetails(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              
+              {/* Primary Objective & Repealed Acts */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                  {selectedCodeDetails.summary?.primary_objective}
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-900">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase py-0.5">Amalgamated Acts:</span>
+                  {selectedCodeDetails.summary?.repealed_acts?.map((act: string, aIdx: number) => (
+                    <span key={aIdx} className="text-[10px] font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-400">
+                      {act}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sections Breakdown */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                  Ground-Truth Statutory Provisions & Penalty Schedules:
+                </h3>
+                
+                <div className="space-y-3">
+                  {selectedCodeDetails.sections?.map((sec: any, sIdx: number) => (
+                    <div key={sIdx} className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5 hover:border-slate-700 transition">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-amber-400 font-mono bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20">
+                            {sec.section_number}
+                          </span>
+                          <span className="text-sm font-bold text-white">{sec.title}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-500">{sec.chapter_title}</span>
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {sec.statutory_text}
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-900 text-[11px] font-mono">
+                        {sec.thresholds && (
+                          <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                            <span className="text-slate-500 block text-[9px] uppercase">Applicability Threshold</span>
+                            <span className="text-blue-300 font-medium">{sec.thresholds.applicability_limit}</span>
+                          </div>
+                        )}
+                        {sec.penalties && (
+                          <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                            <span className="text-slate-500 block text-[9px] uppercase">Statutory Penalty Schedule</span>
+                            <span className="text-rose-400 font-medium">1st: {sec.penalties.first_offense_fine} | Sub: {sec.penalties.subsequent_offense}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {sec.mandatory_registers && sec.mandatory_registers.length > 0 && (
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 pt-1">
+                          <span className="text-slate-500">Prescribed Register:</span>
+                          <span className="text-emerald-400 font-semibold">{sec.mandatory_registers.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

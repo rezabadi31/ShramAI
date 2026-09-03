@@ -102,6 +102,47 @@ export type NormalizedDocumentDossier = {
   records: Record<string, any>[];
 };
 
+export type PenaltyStructure = {
+  first_offense_fine: string;
+  subsequent_offense: string;
+  imprisonment_term?: string | null;
+  compoundable: boolean;
+};
+
+export type StatutoryThreshold = {
+  criterion: string;
+  applicability_limit: string;
+  enforcing_authority: string;
+};
+
+export type StatutorySection = {
+  code_id: string;
+  code_name: string;
+  chapter_number: string;
+  chapter_title: string;
+  section_number: string;
+  title: string;
+  statutory_text: string;
+  keywords: string[];
+  thresholds?: StatutoryThreshold | null;
+  penalties?: PenaltyStructure | null;
+  mandatory_registers: string[];
+  citation: string;
+};
+
+export type LabourCodeSummary = {
+  code_id: string;
+  title: string;
+  act_number: string;
+  enactment_year: number;
+  total_chapters: number;
+  total_sections: number;
+  primary_objective: string;
+  enforcing_spheres: string[];
+  repealed_acts: string[];
+  mandatory_registers: string[];
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;

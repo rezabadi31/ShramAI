@@ -5,6 +5,7 @@ import {
   DocumentRecord,
   DocumentIntelligenceResult,
   NormalizedDocumentDossier,
+  LabourCodeSummary,
 } from '../types';
 import { MOCK_ESTABLISHMENTS, MOCK_DOSSIER } from './mockData';
 
@@ -188,48 +189,6 @@ export async function fetchNormalizedDossier(documentId: string): Promise<Normal
           source_page: 1,
           normalization_confidence: 0.96,
         },
-        {
-          employee_id: "EMP-002",
-          employee_name: "Sunita Devi",
-          daily_wage_rate: 550.0,
-          days_worked: 25,
-          basic_wage: 13750.0,
-          overtime_hours: 0,
-          overtime_wages: 0.0,
-          gross_wages: 13750.0,
-          total_deductions: 1200.0,
-          net_payable: 12550.0,
-          source_page: 1,
-          normalization_confidence: 0.95,
-        },
-        {
-          employee_id: "EMP-003",
-          employee_name: "Rajesh K. (Helper)",
-          daily_wage_rate: 310.0,
-          days_worked: 26,
-          basic_wage: 8060.0,
-          overtime_hours: 0,
-          overtime_wages: 0.0,
-          gross_wages: 8060.0,
-          total_deductions: 800.0,
-          net_payable: 7260.0,
-          source_page: 4,
-          normalization_confidence: 0.91,
-        },
-        {
-          employee_id: "EMP-004",
-          employee_name: "Amit Verma",
-          daily_wage_rate: 720.0,
-          days_worked: 24,
-          basic_wage: 17280.0,
-          overtime_hours: 12,
-          overtime_wages: 2160.0,
-          gross_wages: 19440.0,
-          total_deductions: 2440.0,
-          net_payable: 17000.0,
-          source_page: 2,
-          normalization_confidence: 0.94,
-        },
       ],
     };
   }
@@ -253,6 +212,75 @@ export async function classifyText(text: string, filename?: string): Promise<any
   });
   if (!response.ok) {
     throw new Error('Text classification failed');
+  }
+  return await response.json();
+}
+
+export async function fetchLabourCodes(): Promise<LabourCodeSummary[]> {
+  try {
+    const response = await fetch(`${API_BASE}/knowledge/codes`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch labour codes');
+    }
+    return await response.json();
+  } catch (error) {
+    return [
+      {
+        code_id: "wages_2019",
+        title: "The Code on Wages, 2019",
+        act_number: "Act No. 29 of 2019",
+        enactment_year: 2019,
+        total_chapters: 9,
+        total_sections: 69,
+        primary_objective: "Guarantees statutory minimum wages and timely payment across all sectors.",
+        enforcing_spheres: ["Central Sphere", "State Sphere"],
+        repealed_acts: ["Payment of Wages Act 1936", "Minimum Wages Act 1948"],
+        mandatory_registers: ["Form A", "Form B", "Form C", "Form D"]
+      },
+      {
+        code_id: "ir_2020",
+        title: "The Industrial Relations Code, 2020",
+        act_number: "Act No. 35 of 2020",
+        enactment_year: 2020,
+        total_chapters: 14,
+        total_sections: 104,
+        primary_objective: "Governs trade unions, standing orders (300+ threshold), and dispute resolution.",
+        enforcing_spheres: ["Central Sphere", "Industrial Tribunals"],
+        repealed_acts: ["Trade Unions Act 1926", "Industrial Disputes Act 1947"],
+        mandatory_registers: ["Standing Orders Record", "Notice of Change"]
+      },
+      {
+        code_id: "ss_2020",
+        title: "The Code on Social Security, 2020",
+        act_number: "Act No. 36 of 2020",
+        enactment_year: 2020,
+        total_chapters: 14,
+        total_sections: 164,
+        primary_objective: "Universal social security covering EPFO (20+), ESIC (10+), Gratuity, and Gig workers.",
+        enforcing_spheres: ["EPFO", "ESIC"],
+        repealed_acts: ["EPF Act 1952", "ESI Act 1948", "Maternity Benefit Act 1961"],
+        mandatory_registers: ["ECR Return", "ESIC Form 5", "Form 17 Maternity"]
+      },
+      {
+        code_id: "oshwc_2020",
+        title: "The OSHWC Code, 2020",
+        act_number: "Act No. 37 of 2020",
+        enactment_year: 2020,
+        total_chapters: 14,
+        total_sections: 143,
+        primary_objective: "Occupational safety, health standards, 8 hr/day limit, Safety Committee (250+).",
+        enforcing_spheres: ["DGFASLI", "State DISH"],
+        repealed_acts: ["Factories Act 1948", "Contract Labour Act 1970"],
+        mandatory_registers: ["Form 18 Accident Log", "Safety Committee Minutes"]
+      }
+    ];
+  }
+}
+
+export async function fetchCodeDetails(codeId: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/knowledge/codes/${codeId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch code details');
   }
   return await response.json();
 }
