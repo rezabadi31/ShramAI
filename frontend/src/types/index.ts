@@ -462,6 +462,40 @@ export type CrossDocumentAnomaly = {
   evidence_summary: string;
 };
 
+export type ShapFeatureContribution = {
+  feature_name: string;
+  feature_label: string;
+  category: string;
+  feature_value: number;
+  shap_value: number;
+  direction: 'positive' | 'negative';
+  explanation: string;
+};
+
+export type ShapLocalExplanationResponse = {
+  establishment_id: string;
+  base_value: number;
+  predicted_risk_score: number;
+  net_shap_adjustment: number;
+  positive_escalators: ShapFeatureContribution[];
+  negative_mitigators: ShapFeatureContribution[];
+  all_contributions: ShapFeatureContribution[];
+};
+
+export type ShapGlobalFeatureImportanceItem = {
+  feature_name: string;
+  feature_label: string;
+  category: string;
+  mean_abs_shap: number;
+  rank: number;
+};
+
+export type ShapGlobalSummaryResponse = {
+  dataset_size: number;
+  feature_count: number;
+  top_features: ShapGlobalFeatureImportanceItem[];
+};
+
 export type SHAPContribution = {
   feature_name: string;
   feature_label: string;

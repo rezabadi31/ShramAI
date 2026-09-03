@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     dataset,
     features,
     models,
+    shap,
 )
 
 api_router = APIRouter()
@@ -39,3 +40,4 @@ api_router.include_router(evidence_graph.router, prefix="/evidence-graph")
 api_router.include_router(dataset.router, prefix="/dataset")
 api_router.include_router(features.router, prefix="/ml/features")
 api_router.include_router(models.router, prefix="/ml/models")
+api_router.include_router(shap.router, prefix="/ml/shap")
