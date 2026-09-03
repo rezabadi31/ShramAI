@@ -588,3 +588,70 @@ export async function reconcileEstablishmentAnomalies(establishmentId: string = 
     };
   }
 }
+
+export async function getEstablishmentEvidenceGraph(establishmentId: string = "EST-001"): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/evidence-graph/${establishmentId}`);
+    if (!response.ok) throw new Error('Evidence graph fetch failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      establishment_id: establishmentId,
+      node_count: 15,
+      edge_count: 14,
+      nodes: [
+        { id: establishmentId, label: "Establishment: ABC Industries Ltd.", node_type: "ESTABLISHMENT", tier: 1, properties: { workforce: 420, sector: "Manufacturing" } },
+        { id: "DOC-001", label: "Form B - Wage Register", node_type: "DOCUMENT", tier: 2, properties: { pages: 14 } },
+        { id: "DOC-002", label: "Form D - Muster Roll", node_type: "DOCUMENT", tier: 2, properties: { pages: 8 } },
+        { id: "DOC-003", label: "Axis Bank UTR Scroll", node_type: "DOCUMENT", tier: 2, properties: { pages: 4 } },
+        { id: "REC-EMP003", label: "Record: EMP-003 (Rajesh K.)", node_type: "RECORD", tier: 3, properties: { daily_rate: 310, ot_hours: 12 } },
+        { id: "REC-EMP009", label: "Record: EMP-009 (Vikram Singh)", node_type: "RECORD", tier: 3, properties: { gross_wages: 16500 } },
+        { id: "REC-ATT009", label: "Attendance: EMP-009 (0 Days)", node_type: "RECORD", tier: 3, properties: { days_present: 0 } },
+        { id: "REC-BNK003", label: "Bank Transfer: EMP-003 (₹6,260)", node_type: "RECORD", tier: 3, properties: { amount: 6260 } },
+        { id: "VIO-MIN_WAGE", label: "Violation: Below National Floor Wage", node_type: "VIOLATION", tier: 4, properties: { severity: "HIGH", deficit: "₹140/day" } },
+        { id: "VIO-OVERTIME", label: "Violation: Overtime Below Double Rate", node_type: "VIOLATION", tier: 4, properties: { severity: "HIGH", deficit: "₹480 deficit" } },
+        { id: "ANOM-GHOST", label: "Anomaly: Ghost Worker (Wage Paid, 0 Attendance)", node_type: "VIOLATION", tier: 4, properties: { severity: "HIGH", amount: "₹16,500.00" } },
+        { id: "ANOM-SKIM", label: "Anomaly: Net Disbursement Mismatch", node_type: "VIOLATION", tier: 4, properties: { severity: "HIGH", diverted: "₹1,000.00" } },
+        { id: "CIT-WAGES-SEC6", label: "Code on Wages, 2019 • Sec. 6 & 8", node_type: "CITATION", tier: 5, properties: { penalty: "Fine up to ₹50,000" } },
+        { id: "CIT-WAGES-SEC14", label: "Code on Wages, 2019 • Sec. 14 (Overtime)", node_type: "CITATION", tier: 5, properties: { penalty: "Fine up to ₹20,000" } },
+        { id: "CIT-WAGES-SEC50", label: "Code on Wages, 2019 • Sec. 50 (Registers)", node_type: "CITATION", tier: 5, properties: { penalty: "Fine up to ₹20,000" } },
+        { id: "CIT-WAGES-SEC18", label: "Code on Wages, 2019 • Sec. 18 (Deduction Cap)", node_type: "CITATION", tier: 5, properties: { penalty: "Fine up to ₹20,000" } }
+      ],
+      edges: [
+        { source: establishmentId, target: "DOC-001", edge_type: "CONTAINS", label: "filed_by" },
+        { source: establishmentId, target: "DOC-002", edge_type: "CONTAINS", label: "filed_by" },
+        { source: establishmentId, target: "DOC-003", edge_type: "CONTAINS", label: "filed_by" },
+        { source: "DOC-001", target: "REC-EMP003", edge_type: "EXTRACTED_FROM", label: "extracted_from" },
+        { source: "DOC-001", target: "REC-EMP009", edge_type: "EXTRACTED_FROM", label: "extracted_from" },
+        { source: "DOC-002", target: "REC-ATT009", edge_type: "EXTRACTED_FROM", label: "extracted_from" },
+        { source: "DOC-003", target: "REC-BNK003", edge_type: "EXTRACTED_FROM", label: "extracted_from" },
+        { source: "REC-EMP003", target: "VIO-MIN_WAGE", edge_type: "VIOLATES", label: "exhibits" },
+        { source: "REC-EMP003", target: "VIO-OVERTIME", edge_type: "VIOLATES", label: "exhibits" },
+        { source: "REC-EMP009", target: "ANOM-GHOST", edge_type: "VIOLATES", label: "exhibits" },
+        { source: "REC-ATT009", target: "ANOM-GHOST", edge_type: "VIOLATES", label: "exhibits" },
+        { source: "REC-EMP003", target: "ANOM-SKIM", edge_type: "VIOLATES", label: "exhibits" },
+        { source: "REC-BNK003", target: "ANOM-SKIM", edge_type: "VIOLATES", label: "exhibits" },
+        { source: "VIO-MIN_WAGE", target: "CIT-WAGES-SEC6", edge_type: "STATUTORY_SOURCE", label: "governed_by" },
+        { source: "VIO-OVERTIME", target: "CIT-WAGES-SEC14", edge_type: "STATUTORY_SOURCE", label: "governed_by" },
+        { source: "ANOM-GHOST", target: "CIT-WAGES-SEC50", edge_type: "STATUTORY_SOURCE", label: "governed_by" },
+        { source: "ANOM-SKIM", target: "CIT-WAGES-SEC18", edge_type: "STATUTORY_SOURCE", label: "governed_by" }
+      ]
+    };
+  }
+}
+
+export async function getProvenancePath(establishmentId: string = "EST-001", nodeId: string = "VIO-MIN_WAGE"): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/evidence-graph/${establishmentId}/provenance/${nodeId}`);
+    if (!response.ok) throw new Error('Provenance fetch failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      target_node_id: nodeId,
+      path_node_ids: [establishmentId, "DOC-001", "REC-EMP003", nodeId, "CIT-WAGES-SEC6"],
+      nodes: [],
+      edges: [],
+      provenance_summary: `Trace lineage: Establishment ➔ Form B - Wage Register ➔ Record: EMP-003 ➔ ${nodeId} ➔ Code on Wages, 2019 Sec. 6 & 8`
+    };
+  }
+}

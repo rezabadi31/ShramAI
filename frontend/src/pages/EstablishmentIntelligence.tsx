@@ -16,10 +16,12 @@ import {
   AlertOctagon,
   Sparkles,
   Loader2,
-  Cpu
+  Cpu,
+  Layers
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
+import { EvidenceGraphModal } from '../components/EvidenceGraphModal';
 import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult } from '../types';
 import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies } from '../services/api';
 
@@ -46,6 +48,7 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [docAuditResult, setDocAuditResult] = useState<DocumentAgentAuditResult | null>(null);
   const [complianceAgentAudit, setComplianceAgentAudit] = useState<ComplianceAgentAuditResult | null>(null);
   const [anomalyResult, setAnomalyResult] = useState<CrossDocumentAuditResult | null>(null);
+  const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -97,6 +100,13 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
         </button>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsGraphModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer"
+          >
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Evidence Graph</span>
+          </button>
           <button
             onClick={handleRunOrchestrator}
             disabled={isOrchestrating}
@@ -905,6 +915,13 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
           )}
         </div>
       )}
+
+      {/* Evidence Graph & Provenance Modal */}
+      <EvidenceGraphModal
+        establishmentId={establishment.id}
+        isOpen={isGraphModalOpen}
+        onClose={() => setIsGraphModalOpen(false)}
+      />
 
     </div>
   );

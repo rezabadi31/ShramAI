@@ -309,6 +309,37 @@ export type CrossDocumentAuditResult = {
   recommendations: string[];
 };
 
+export type EvidenceGraphNode = {
+  id: string;
+  label: string;
+  node_type: 'ESTABLISHMENT' | 'DOCUMENT' | 'RECORD' | 'VIOLATION' | 'CITATION';
+  tier: number;
+  properties: Record<string, any>;
+};
+
+export type EvidenceGraphEdge = {
+  source: string;
+  target: string;
+  edge_type: 'CONTAINS' | 'EXTRACTED_FROM' | 'VIOLATES' | 'STATUTORY_SOURCE';
+  label: string;
+};
+
+export type EvidenceGraphResponse = {
+  establishment_id: string;
+  node_count: number;
+  edge_count: number;
+  nodes: EvidenceGraphNode[];
+  edges: EvidenceGraphEdge[];
+};
+
+export type ProvenancePathResponse = {
+  target_node_id: string;
+  path_node_ids: string[];
+  nodes: EvidenceGraphNode[];
+  edges: EvidenceGraphEdge[];
+  provenance_summary: string;
+};
+
 export type CrossDocumentAnomaly = {
   id: string;
   anomaly_type: string;
