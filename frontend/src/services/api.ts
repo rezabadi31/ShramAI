@@ -1195,3 +1195,58 @@ export async function getComprehensiveExplanation(establishmentId: string = "EST
     };
   }
 }
+
+export async function getEmployerComplianceProfile(establishmentId: string = "EST-001"): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE}/employer/${establishmentId}/profile`);
+    if (!response.ok) throw new Error('Employer profile fetch failed');
+    return await response.json();
+  } catch (error) {
+    return {
+      establishment_id: establishmentId,
+      establishment_name: "ABC Industries Ltd.",
+      lin: "1928374650",
+      registration_number: "MH-PUN-EST-001",
+      jurisdiction: "Central Sphere — Pune, Maharashtra",
+      ml_risk_score: 84.5,
+      priority_class: "HIGH",
+      voluntary_compliance_score: 48,
+      score_delta_to_safe_harbour: 37,
+      total_penalty_exposure_inr: 320000,
+      missing_filings_count: 3,
+      flagged_issues_count: 5,
+      register_statuses: [
+        { name: "Form B Wage Register (Current Quarter)", status: "Submitted & Audited", last_processed: "15 Oct 2024", audit_badge: "2 Issues Found", issues_count: 2 },
+        { name: "Attendance Muster Roll (Form D)", status: "Submitted & Audited", last_processed: "15 Oct 2024", audit_badge: "1 Issue Found", issues_count: 1 },
+        { name: "Employee Register Form A", status: "Verified Active", last_processed: "01 Sep 2024", audit_badge: "Compliant", issues_count: 0 },
+        { name: "Bank Payout Reconciliation Scroll", status: "Submitted", last_processed: "16 Oct 2024", audit_badge: "Reconciled", issues_count: 0 },
+      ],
+      corrective_actions: [
+        { issue: "Daily wage for 3 workers fell below statutory minimum floor", statutory_ref: "Code on Wages 2019, Section 6(1)", recommended_action: "Review Shift B wage entries and disburse statutory wage differential arrears.", priority: "CRITICAL", estimated_arrears_inr: 7800, deadline: "Within 7 days" },
+        { issue: "Headcount gap: 5 workers on muster roll not reflected on wage register", statutory_ref: "Code on Wages 2019, Section 50", recommended_action: "Upload updated wage disbursement scroll or contractor invoice matching muster roll workers.", priority: "HIGH", estimated_arrears_inr: 3400, deadline: "Within 10 days" },
+        { issue: "Missing quarterly Safety Committee meeting minutes", statutory_ref: "OSHWC Code 2020, Section 23", recommended_action: "Constitute Safety Committee, elect worker representatives, and file constitution notice.", priority: "MEDIUM", estimated_arrears_inr: 0, deadline: "Within 14 days" },
+      ],
+      penalty_exposures: [
+        { code_name: "Code on Wages, 2019", section: "Section 54(1)", violation_description: "Payment of wages below statutory minimum floor rate", maximum_fine_inr: 50000, applicable: true },
+        { code_name: "Code on Wages, 2019", section: "Section 54(2)", violation_description: "Failure to maintain statutory wage registers in prescribed form", maximum_fine_inr: 20000, applicable: true },
+        { code_name: "OSHWC Code, 2020", section: "Section 96", violation_description: "Non-constitution of mandatory Safety Committee for 250+ worker facility", maximum_fine_inr: 200000, applicable: true },
+        { code_name: "Code on Wages, 2019", section: "Section 18", violation_description: "Ghost worker payroll discrepancy — wage credit without attendance record", maximum_fine_inr: 50000, applicable: true },
+      ],
+      safe_harbour_window_days: 14,
+      timestamp: "2026-09-03 15:00:00"
+    };
+  }
+}
+
+export async function getEmployerPenaltyExposure(establishmentId: string = "EST-001"): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE}/employer/${establishmentId}/penalty-exposure`);
+    if (!response.ok) throw new Error('Penalty exposure fetch failed');
+    return await response.json();
+  } catch (error) {
+    return [
+      { code_name: "Code on Wages, 2019", section: "Section 54(1)", violation_description: "Payment below minimum wage floor", maximum_fine_inr: 50000, applicable: true },
+      { code_name: "OSHWC Code, 2020", section: "Section 96", violation_description: "No Safety Committee for 250+ workers", maximum_fine_inr: 200000, applicable: true },
+    ];
+  }
+}

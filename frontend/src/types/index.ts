@@ -636,3 +636,48 @@ export type EstablishmentDossier = {
 };
 
 export type ActiveRole = 'landing' | 'employer' | 'inspector' | 'establishment-detail' | 'upload';
+
+export type RegisterStatusItem = {
+  name: string;
+  status: string;
+  last_processed: string;
+  audit_badge: string;
+  issues_count: number;
+};
+
+export type CorrectiveActionItem = {
+  issue: string;
+  statutory_ref: string;
+  recommended_action: string;
+  priority: string;
+  estimated_arrears_inr: number;
+  deadline: string;
+};
+
+export type PenaltyExposureItem = {
+  code_name: string;
+  section: string;
+  violation_description: string;
+  maximum_fine_inr: number;
+  applicable: boolean;
+};
+
+export type EmployerComplianceProfile = {
+  establishment_id: string;
+  establishment_name: string;
+  lin: string;
+  registration_number: string;
+  jurisdiction: string;
+  ml_risk_score: number;
+  priority_class: string;
+  voluntary_compliance_score: number;
+  score_delta_to_safe_harbour: number;
+  total_penalty_exposure_inr: number;
+  missing_filings_count: number;
+  flagged_issues_count: number;
+  register_statuses: RegisterStatusItem[];
+  corrective_actions: CorrectiveActionItem[];
+  penalty_exposures: PenaltyExposureItem[];
+  safe_harbour_window_days: number;
+  timestamp: string;
+};
