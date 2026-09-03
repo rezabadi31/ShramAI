@@ -217,6 +217,50 @@ export type DocumentAgentAuditResult = {
   agent_recommendation: string;
 };
 
+export type EvidenceAnchor = {
+  document_id: string;
+  document_name: string;
+  page_number: number;
+  row_index?: number | null;
+  employee_id?: string | null;
+  discrepancy_value: string;
+  statutory_requirement: string;
+};
+
+export type StatutoryEnrichment = {
+  code_id: string;
+  act_title: string;
+  section_number: string;
+  section_title: string;
+  statutory_quote: string;
+  authority: string;
+  penalty_schedule?: string | null;
+  relevance_score: number;
+};
+
+export type GroundedComplianceFinding = {
+  finding_id: string;
+  rule_id: string;
+  rule_name: string;
+  status: string;
+  severity: string;
+  explanation: string;
+  evidence_anchor: EvidenceAnchor;
+  statutory_enrichment: StatutoryEnrichment;
+  actionable_remedy: string;
+};
+
+export type ComplianceAgentAuditResult = {
+  establishment_id: string;
+  audit_timestamp: string;
+  compliance_score: number;
+  total_rules_evaluated: number;
+  violations_count: number;
+  passed_count: number;
+  findings: GroundedComplianceFinding[];
+  agent_summary: string;
+};
+
 export type ComplianceFinding = {
   id: string;
   rule_id: string;
