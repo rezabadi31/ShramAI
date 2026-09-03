@@ -114,7 +114,6 @@ export async function fetchExtractionResult(documentId: string): Promise<Documen
     }
     return await response.json();
   } catch (error) {
-    // Return high-fidelity fallback structured result
     return {
       document_id: documentId,
       document_type: "Wage Register (Form B)",
@@ -155,4 +154,26 @@ export async function fetchExtractionResult(documentId: string): Promise<Documen
       raw_text_sample: "FORM B - REGISTER OF WAGES [Rule 78(1)(a)(i)]\nEstablishment: ABC Industries Ltd. | Month: October 2024\nSl | Emp ID | Employee Name | Wage Rate | Days Worked | Net Paid\n1 | EMP-001 | Ramesh Kumar | 650.00 | 26 | 16200.00"
     };
   }
+}
+
+export async function classifyDocument(documentId: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/documents/${documentId}/classify`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Classification failed');
+  }
+  return await response.json();
+}
+
+export async function classifyText(text: string, filename?: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/documents/classify-text`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, filename }),
+  });
+  if (!response.ok) {
+    throw new Error('Text classification failed');
+  }
+  return await response.json();
 }
