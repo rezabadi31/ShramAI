@@ -16,8 +16,7 @@ import {
   DiagnosticProbeBatchResponse,
 } from '../types';
 import { MOCK_ESTABLISHMENTS, MOCK_DOSSIER } from './mockData';
-
-const API_BASE = '/api/v1';
+import { API_BASE } from '../config/api';
 
 export function authHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
   const token = localStorage.getItem('shram_token');

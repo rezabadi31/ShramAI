@@ -16,7 +16,7 @@ import { MOCK_DOSSIER } from './services/mockData';
 import { Lock, ShieldAlert } from 'lucide-react';
 
 function AppContent() {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const [activeRole, setActiveRole] = useState<ActiveRole>(() => {
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view');
@@ -55,9 +55,9 @@ function AppContent() {
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view');
     if (view === 'employer' && (!user || user.role !== 'employer')) {
-      login('employer@abcindustries.com', 'employer', 'Rajiv Mehra', 'demo-jwt-employer', 'EST-001');
+      handleOpenLogin('employer');
     } else if ((view === 'inspector' || view === 'establishment-detail' || view === 'dossier') && (!user || user.role !== 'inspector')) {
-      login('inspector@shram.gov.in', 'inspector', 'S. K. Sharma', 'demo-jwt-inspector');
+      handleOpenLogin('inspector');
     }
   }, []);
 

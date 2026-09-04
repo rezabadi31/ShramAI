@@ -9,9 +9,22 @@ from app.core.config import settings
 
 Base = declarative_base()
 
+
+def get_async_database_url(raw_url: str) -> str:
+    """
+    Normalizes PostgreSQL connection string for async SQLAlchemy engine.
+    Render and Cloud PaaS providers provide 'postgres://' or 'postgresql://' by default.
+    """
+    if raw_url.startswith("postgres://"):
+        return raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+asyncpg://"):
+        return raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return raw_url
+
+
 # Engine creation
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    get_async_database_url(settings.DATABASE_URL),
     echo=settings.DEBUG,
     future=True,
 )

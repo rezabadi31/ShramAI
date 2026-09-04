@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     SECRET_KEY: str = "shram-ai-development-secret-key-32bytes-min"
+    JWT_SECRET: Union[str, None] = None
+
+    def model_post_init(self, __context) -> None:
+        if self.JWT_SECRET:
+            self.SECRET_KEY = self.JWT_SECRET
 
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./shram.db"  # Fallback for lightweight local dev without Postgres running
@@ -19,10 +24,16 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "shram_db"
 
-    # Redis
+    # Redis (Optional in MVP)
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # CORS
+    # External AI / OCR / Embedding APIs (optional, server-side only)
+    LLM_API_KEY: Union[str, None] = None
+    OCR_API_KEY: Union[str, None] = None
+    EMBEDDING_API_KEY: Union[str, None] = None
+
+    # CORS & Production Frontend Binding
+    FRONTEND_URL: Union[str, None] = None
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
@@ -32,11 +43,29 @@ class Settings(BaseSettings):
 
     @field_validator("CORS_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
+        origins = []
+        if isinstance(v, str):
+            if v.startswith("[") and v.endswith("]"):
+                import json
+                try:
+                    origins = json.loads(v)
+                except Exception:
+                    origins = [i.strip() for i in v.strip("[]").replace('"', "").split(",") if i.strip()]
+            else:
+                origins = [i.strip() for i in v.split(",") if i.strip()]
         elif isinstance(v, list):
-            return v
-        return []
+            origins = list(v)
+
+        defaults = [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ]
+        for d in defaults:
+            if d not in origins:
+                origins.append(d)
+        return origins
 
     # Storage paths
     UPLOAD_DIR: str = "./data/raw"

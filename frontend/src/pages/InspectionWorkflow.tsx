@@ -18,10 +18,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ActiveRole } from '../types';
+import { API_BASE } from '../config/api';
 
 // ------ API helpers (inline fallback for demo) ------
-
-const API_BASE = '/api/v1';
 
 async function apiStartSession(establishmentId: string, establishmentName: string): Promise<any> {
   try {

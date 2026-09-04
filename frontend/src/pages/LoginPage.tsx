@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Lock, Building2, FileSearch, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Role } from '../types';
+import { API_BASE } from '../config/api';
 
 interface LoginPageProps {
   initialRole?: 'employer' | 'inspector';
@@ -39,7 +40,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setError('');
 
     try {
-      const response = await fetch('/api/v1/auth/login/json', {
+      const response = await fetch(`${API_BASE}/auth/login/json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
