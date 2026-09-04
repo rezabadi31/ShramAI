@@ -15,11 +15,22 @@ import {
   Loader2,
   ChevronRight,
   Scale,
+  Award,
+  Check,
 } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
 import { StatutoryNoticeViewerModal } from '../components/StatutoryNoticeViewerModal';
-import { ActiveRole, EmployerComplianceProfile, StatutoryNotice } from '../types';
-import { getEmployerComplianceProfile, getComprehensiveExplanation, queryLabourRAG, getEstablishmentNotices, updateNoticeStatus } from '../services/api';
+import { SafeHarbourCertificateModal } from '../components/SafeHarbourCertificateModal';
+import { ActiveRole, EmployerComplianceProfile, StatutoryNotice, SafeHarbourCertificate } from '../types';
+import { 
+  getEmployerComplianceProfile, 
+  getComprehensiveExplanation, 
+  queryLabourRAG, 
+  getEstablishmentNotices, 
+  updateNoticeStatus,
+  recalibrateCompliance,
+  issueSafeHarbourCertificate
+} from '../services/api';
 
 interface EmployerDashboardProps {
   onNavigate: (role: ActiveRole) => void;
@@ -86,12 +97,60 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
   const [pendingNotices, setPendingNotices] = useState<StatutoryNotice[]>([]);
   const [selectedNotice, setSelectedNotice] = useState<StatutoryNotice | null>(null);
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
+  const [curedActions, setCuredActions] = useState<string[]>([]);
+  const [isRecalibrating, setIsRecalibrating] = useState(false);
+  const [certificate, setCertificate] = useState<SafeHarbourCertificate | null>(null);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isClaimingCert, setIsClaimingCert] = useState(false);
 
   useEffect(() => {
     getEmployerComplianceProfile("EST-001").then(setProfile).catch(console.error);
     getComprehensiveExplanation("EST-001").then(setRemediation).catch(console.error);
     getEstablishmentNotices("EST-001").then(setPendingNotices).catch(console.error);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('cert') === 'true') {
+      issueSafeHarbourCertificate("EST-001").then(cert => {
+        setCertificate(cert);
+        setIsCertModalOpen(true);
+      }).catch(console.error);
+    }
   }, []);
+
+  const handleCureAction = async (actionId: string) => {
+    if (curedActions.includes(actionId)) return;
+    setIsRecalibrating(true);
+    const updated = [...curedActions, actionId];
+    setCuredActions(updated);
+    try {
+      const res = await recalibrateCompliance("EST-001", updated);
+      if (profile) {
+        setProfile({
+          ...profile,
+          voluntary_compliance_score: res.recalibrated_score,
+          score_delta_to_safe_harbour: res.score_delta_to_safe_harbour,
+          total_penalty_exposure_inr: res.residual_penalty_exposure_inr,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRecalibrating(false);
+    }
+  };
+
+  const handleClaimCertificate = async () => {
+    setIsClaimingCert(true);
+    try {
+      const cert = await issueSafeHarbourCertificate("EST-001");
+      setCertificate(cert);
+      setIsCertModalOpen(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsClaimingCert(false);
+    }
+  };
 
   const handleRagQuery = async (q: string) => {
     setIsRagLoading(true);
@@ -139,6 +198,13 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
 
         <div className="flex items-center gap-3">
           <button
+            onClick={handleClaimCertificate}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs transition shadow-md shadow-emerald-500/20 cursor-pointer"
+          >
+            <Award className="w-4 h-4" />
+            <span>Safe Harbour Certificate</span>
+          </button>
+          <button
             onClick={() => onNavigate('upload')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition shadow-md shadow-amber-500/20 cursor-pointer"
           >
@@ -153,6 +219,38 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
           </button>
         </div>
       </div>
+
+      {/* Safe Harbour Eligible / Active Banner */}
+      {(p?.voluntary_compliance_score ?? 48) >= 85 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-cyan-950/60 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  Safe Harbour Voluntary Compliance Status Achieved! ({p?.voluntary_compliance_score}/100)
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                  180-DAY IMMUNITY
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Statutory self-audit requirements fulfilled. Establishment is protected from automated inspection selection under Code on Wages §56 and Social Security Code §138.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleClaimCertificate}
+            disabled={isClaimingCert}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs transition shrink-0 cursor-pointer shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
+          >
+            <Award className="w-4 h-4" />
+            <span>{isClaimingCert ? 'Issuing Certificate...' : 'View Official Safe Harbour Certificate (Form SH-01)'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Statutory Show Cause Notice Action Alert Banner */}
       {pendingNotices.length > 0 && (
@@ -343,38 +441,80 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             </div>
 
             <div className="space-y-3">
-              {(p?.corrective_actions ?? []).map((item, idx) => (
-                <div key={idx} className="bg-slate-900/70 p-4 rounded-xl border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-rose-300 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-                      {item.issue}
-                    </span>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border shrink-0 ml-2 ${item.priority === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : item.priority === 'HIGH' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                      {item.priority}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    <strong className="text-slate-300">Action:</strong> {item.recommended_action}
-                  </p>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px]">
-                    <span className="text-amber-400 font-mono">{item.statutory_ref}</span>
-                    <div className="flex items-center gap-3">
-                      {item.estimated_arrears_inr > 0 && (
-                        <span className="text-emerald-400 font-mono font-bold">₹{item.estimated_arrears_inr.toLocaleString('en-IN')}</span>
-                      )}
-                      <span className="text-slate-500">{item.deadline}</span>
-                      <button
-                        onClick={() => onNavigate('upload')}
-                        className="text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Upload Proof</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
+              {(p?.corrective_actions ?? []).map((item, idx) => {
+                const actionId = `ACT-00${idx + 1}`;
+                const isCured = curedActions.includes(actionId);
+                return (
+                  <div 
+                    key={idx} 
+                    className={`p-4 rounded-xl border transition space-y-2 ${
+                      isCured 
+                        ? 'bg-emerald-950/20 border-emerald-500/40' 
+                        : 'bg-slate-900/70 border-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-semibold flex items-center gap-1.5 ${isCured ? 'text-emerald-300' : 'text-rose-300'}`}>
+                        {isCured ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+                        )}
+                        {item.issue}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {isCured && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            CURED ✓
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border shrink-0 ${
+                          item.priority === 'CRITICAL' 
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                            : item.priority === 'HIGH' 
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {item.priority}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <strong className="text-slate-300">Action:</strong> {item.recommended_action}
+                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] gap-2">
+                      <span className="text-amber-400 font-mono">{item.statutory_ref}</span>
+                      <div className="flex items-center gap-3">
+                        {item.estimated_arrears_inr > 0 && (
+                          <span className="text-emerald-400 font-mono font-bold">₹{item.estimated_arrears_inr.toLocaleString('en-IN')}</span>
+                        )}
+                        <span className="text-slate-500">{item.deadline}</span>
+                        {!isCured ? (
+                          <button
+                            onClick={() => handleCureAction(actionId)}
+                            disabled={isRecalibrating}
+                            className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-sm shadow-emerald-600/30 disabled:opacity-50"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{isRecalibrating ? 'Recalibrating...' : 'Cure & Recalibrate'}</span>
+                          </button>
+                        ) : (
+                          <span className="text-emerald-400 font-semibold text-xs flex items-center gap-1">
+                            <span>Remediated</span>
+                          </span>
+                        )}
+                        <button
+                          onClick={() => onNavigate('upload')}
+                          className="text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Proof</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -549,6 +689,13 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
           setPendingNotices(prev => prev.map(n => n.notice_id === noticeId ? updated : n));
         }}
         isEmployerRole={true}
+      />
+
+      {/* Safe Harbour Certificate Viewer Modal */}
+      <SafeHarbourCertificateModal
+        certificate={certificate}
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
       />
     </div>
   );

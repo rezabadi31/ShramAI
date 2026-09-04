@@ -23,7 +23,8 @@ import {
   TrendingDown,
   ShieldAlert,
   ClipboardList,
-  History
+  History,
+  Download
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
@@ -32,7 +33,7 @@ import { RiskFeatureMatrixModal } from '../components/RiskFeatureMatrixModal';
 import { ComplianceTimeline } from '../components/ComplianceTimeline';
 import { StatutoryNoticeViewerModal } from '../components/StatutoryNoticeViewerModal';
 import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse, RiskAgentAuditResult, ComprehensiveExplanationResponse, EstablishmentTimeline, StatutoryNotice } from '../types';
-import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit, getComprehensiveExplanation, getEstablishmentTimeline, getEstablishmentNotices, generateStatutoryNotice, updateNoticeStatus } from '../services/api';
+import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit, getComprehensiveExplanation, getEstablishmentTimeline, getEstablishmentNotices, generateStatutoryNotice, updateNoticeStatus, exportInspectorDossier } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -159,6 +160,21 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
     setFeedbackState(prev => ({ ...prev, [findingId]: action }));
   };
 
+  const handleExportDossier = async () => {
+    try {
+      const data = await exportInspectorDossier(establishment.id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ShramAI_Statutory_Dossier_${establishment.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       
@@ -227,6 +243,14 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
           >
             <Scale className="w-3.5 h-3.5 text-amber-400" />
             <span>{isNoticeLoading ? 'Loading Notice...' : 'Statutory Notice'}</span>
+          </button>
+          <button
+            onClick={handleExportDossier}
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            title="Download Statutory Audit Dossier (JSON)"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Export Dossier</span>
           </button>
           <span className="text-xs text-slate-400 font-mono">Dossier ID: DOS-{establishment.id}</span>
           {onBeginInspection && (

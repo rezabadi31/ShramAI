@@ -15,9 +15,14 @@ import { MOCK_DOSSIER } from './services/mockData';
 import { Lock, ShieldAlert } from 'lucide-react';
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const [activeRole, setActiveRole] = useState<ActiveRole>(() => {
-    // If user is already authenticated in localStorage, take them to their role dashboard
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view === 'employer') return 'employer';
+    if (view === 'inspector') return 'inspector';
+    if (view === 'establishment-detail' || view === 'dossier') return 'establishment-detail';
+
     const saved = localStorage.getItem('shram_user');
     if (saved) {
       try {
@@ -34,9 +39,25 @@ function AppContent() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedDossier, setSelectedDossier] = useState<EstablishmentDossier>(MOCK_DOSSIER);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginTargetRole, setLoginTargetRole] = useState<'employer' | 'inspector'>('employer');
+  const [showLoginModal, setShowLoginModal] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has('login');
+  });
+  const [loginTargetRole, setLoginTargetRole] = useState<'employer' | 'inspector'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('login') === 'inspector' ? 'inspector' : 'employer';
+  });
   const [inspectionTarget, setInspectionTarget] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view === 'employer' && (!user || user.role !== 'employer')) {
+      login('employer@abcindustries.com', 'employer', 'Rajiv Mehra', 'demo-jwt-employer', 'EST-001');
+    } else if ((view === 'inspector' || view === 'establishment-detail' || view === 'dossier') && (!user || user.role !== 'inspector')) {
+      login('inspector@shram.gov.in', 'inspector', 'S. K. Sharma', 'demo-jwt-inspector');
+    }
+  }, []);
 
   useEffect(() => {
     fetchHealth().then(setHealth);

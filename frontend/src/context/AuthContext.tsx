@@ -5,7 +5,7 @@ interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, role: Role, name: string, token: string) => void;
+  login: (email: string, role: Role, name: string, token: string, establishmentId?: string) => void;
   logout: () => void;
   switchPersona: (role: Role) => void;
 }

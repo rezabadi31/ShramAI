@@ -821,3 +821,59 @@ export type MacroOverviewResponse = {
   monthly_trend: MonthlyTrendPoint[];
   metadata?: Record<string, any>;
 };
+
+export type RecalibrationResponse = {
+  establishment_id: string;
+  establishment_name: string;
+  previous_score: number;
+  recalibrated_score: number;
+  score_delta_to_safe_harbour: number;
+  safe_harbour_eligible: boolean;
+  cured_actions_count: number;
+  remaining_actions_count: number;
+  residual_penalty_exposure_inr: number;
+  penalty_reduction_inr: number;
+  timestamp: string;
+};
+
+export type SafeHarbourCertificate = {
+  certificate_id: string;
+  certificate_number: string;
+  establishment_id: string;
+  establishment_name: string;
+  lin: string;
+  registration_number: string;
+  jurisdiction: string;
+  certified_compliance_score: number;
+  safe_harbour_status: string;
+  issue_date: string;
+  expiry_date: string;
+  validity_days: number;
+  statutory_citations: string[];
+  cured_violations_summary: string[];
+  verification_hash_sha256: string;
+  issuing_authority: string;
+  digital_seal_id: string;
+};
+
+export type InspectorReportDownload = {
+  report_id: string;
+  report_title: string;
+  establishment_id: string;
+  establishment_name: string;
+  lin: string;
+  industry: string;
+  jurisdiction: string;
+  composite_risk_score: number;
+  risk_classification: string;
+  percentile_rank: string;
+  generated_at: string;
+  executive_summary: string;
+  top_shap_contributors: Array<{ feature: string; weight: string }>;
+  compliance_findings: Array<{ finding_id: string; rule: string; severity: string; evidence: string; statutory_ref: string }>;
+  cross_document_anomalies: Array<{ anomaly_id: string; type: string; severity: string; detail: string; statutory_ref: string }>;
+  recommended_inspection_focus: string[];
+  statutory_provisions_applicable: string[];
+  evidence_graph_nodes_count: number;
+};
+
