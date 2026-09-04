@@ -1,8 +1,10 @@
 """
 Establishment Intelligence and Inspection Queue Endpoints.
 """
-from typing import List
-from fastapi import APIRouter, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends, status
+from app.schemas.auth import UserResponse, RoleEnum
+from app.api.deps import get_current_user_optional, verify_establishment_ownership
 from app.schemas.establishment import (
     EstablishmentSummary,
     EstablishmentIntelligenceDossier,
@@ -72,14 +74,25 @@ SAMPLE_ESTABLISHMENTS: List[EstablishmentSummary] = [
 
 
 @router.get("", response_model=List[EstablishmentSummary], tags=["Establishments"])
-async def list_establishments():
+async def list_establishments(current_user: Optional[UserResponse] = Depends(get_current_user_optional)):
     """List all establishments ranked in the inspection priority queue."""
+    if current_user and current_user.role == RoleEnum.EMPLOYER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Restricted — Your account does not have Inspector permissions.",
+        )
     return SAMPLE_ESTABLISHMENTS
 
 
 @router.get("/{establishment_id}", response_model=EstablishmentIntelligenceDossier, tags=["Establishments"])
-async def get_establishment_dossier(establishment_id: str):
+async def get_establishment_dossier(
+    establishment_id: str,
+    current_user: Optional[UserResponse] = Depends(get_current_user_optional),
+):
     """Retrieve full compliance intelligence dossier for a specific establishment."""
+    if current_user:
+        verify_establishment_ownership(establishment_id, current_user)
+
     establishment = next((e for e in SAMPLE_ESTABLISHMENTS if e.id == establishment_id), None)
     if not establishment:
         # Default to first if not matched or error

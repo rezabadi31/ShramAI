@@ -15,19 +15,49 @@ import { MOCK_DOSSIER } from './services/mockData';
 import { Lock, ShieldAlert } from 'lucide-react';
 
 function AppContent() {
-  const { user, switchPersona } = useAuth();
-  const [activeRole, setActiveRole] = useState<ActiveRole>('landing');
+  const { user } = useAuth();
+  const [activeRole, setActiveRole] = useState<ActiveRole>(() => {
+    // If user is already authenticated in localStorage, take them to their role dashboard
+    const saved = localStorage.getItem('shram_user');
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        return u.role === 'employer' ? 'employer' : 'inspector';
+      } catch {
+        return 'landing';
+      }
+    }
+    return 'landing';
+  });
+
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedDossier, setSelectedDossier] = useState<EstablishmentDossier>(MOCK_DOSSIER);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [inspectionTarget, setInspectionTarget] = useState<{id: string; name: string} | null>(null);
+  const [loginTargetRole, setLoginTargetRole] = useState<'employer' | 'inspector'>('employer');
+  const [inspectionTarget, setInspectionTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchHealth().then(setHealth);
-    fetchEstablishments().then(setEstablishments);
-  }, []);
+    // Only fetch inspector queue establishments if user is inspector or admin
+    if (user && (user.role === 'inspector' || user.role === 'admin')) {
+      fetchEstablishments().then(setEstablishments);
+    }
+  }, [user]);
+
+  const handleOpenLogin = (role: 'employer' | 'inspector') => {
+    setLoginTargetRole(role);
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSuccess = (role: 'employer' | 'inspector') => {
+    setShowLoginModal(false);
+    setActiveRole(role);
+    if (role === 'inspector') {
+      fetchEstablishments().then(setEstablishments);
+    }
+  };
 
   const handleSelectEstablishment = async (establishmentId: string) => {
     const dossier = await fetchEstablishmentDossier(establishmentId);
@@ -35,58 +65,110 @@ function AppContent() {
     setActiveRole('establishment-detail');
   };
 
-  // RBAC Guard: If user is Employer trying to access Inspector queue/intelligence
-  const isInspectorRoute = activeRole === 'inspector' || activeRole === 'establishment-detail' || activeRole === 'inspection-workflow';
-  const isBlockedForEmployer = isInspectorRoute && user?.role === 'employer';
+  // RBAC Route Violations Detection
+  const isInspectorDestination = activeRole === 'inspector' || activeRole === 'establishment-detail' || activeRole === 'inspection-workflow';
+  const isEmployerDestination = activeRole === 'employer' || activeRole === 'upload';
+
+  const isEmployerBlockedFromInspector = Boolean(user && user.role === 'employer' && isInspectorDestination);
+  const isInspectorBlockedFromEmployer = Boolean(user && (user.role === 'inspector' || user.role === 'admin') && isEmployerDestination);
+  const isUnauthenticatedBlocked = Boolean(!user && activeRole !== 'landing');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950">
       
-      {/* Top GovTech Navbar */}
+      {/* Top Navbar */}
       <Navbar
         activeRole={activeRole}
         onSelectRole={(role) => setActiveRole(role)}
         health={health}
         onOpenAssistant={() => setIsAssistantOpen(true)}
-        onOpenLogin={() => setShowLoginModal(true)}
+        onOpenLogin={handleOpenLogin}
       />
 
       {/* Main Routed Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Role Guard Warning if Employer tries to access Inspector Queue */}
-        {isBlockedForEmployer ? (
-          <div className="max-w-xl mx-auto my-12 glass-panel p-8 rounded-3xl border border-rose-500/30 text-center space-y-4 shadow-2xl">
-            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto">
+        {/* Case 1: Unauthenticated user trying to access protected dashboards */}
+        {isUnauthenticatedBlocked ? (
+          <div className="max-w-md mx-auto my-14 glass-panel p-8 rounded-3xl border border-slate-800 text-center space-y-4 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto">
               <Lock className="w-7 h-7" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-white">Inspector Queue Restricted Area</h2>
+              <h2 className="text-lg font-bold text-white">Authentication Required</h2>
               <p className="text-xs text-slate-400 leading-relaxed">
-                You are currently signed in as an <strong className="text-amber-400">Employer</strong> ({user?.name}). Statutory enforcement queues and inspector risk algorithms require authorized enforcement officer credentials.
+                Please sign in with your credentials to access protected compliance data.
               </p>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
-                onClick={() => switchPersona('inspector')}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
+                onClick={() => handleOpenLogin('employer')}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer"
               >
-                <ShieldAlert className="w-4 h-4" />
-                <span>Switch to Inspector Persona</span>
+                Employer Login
               </button>
               <button
+                onClick={() => handleOpenLogin('inspector')}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition cursor-pointer"
+              >
+                Inspector Login
+              </button>
+            </div>
+          </div>
+        ) : isEmployerBlockedFromInspector ? (
+          /* Case 2: Employer trying to access Inspector routes */
+          <div className="max-w-xl mx-auto my-14 glass-panel p-8 rounded-3xl border border-rose-500/30 text-center space-y-5 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-bold text-white">Access Restricted</h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Your account does not have Inspector permissions.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                You are currently signed in as an Employer ({user?.name}). Statutory enforcement queues and inspector risk algorithms require authorized enforcement officer credentials.
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-center">
+              <button
                 onClick={() => setActiveRole('employer')}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition cursor-pointer shadow-md shadow-amber-500/20"
               >
                 Return to Employer Portal
               </button>
             </div>
           </div>
+        ) : isInspectorBlockedFromEmployer ? (
+          /* Case 3: Inspector trying to access Employer-only submission routes */
+          <div className="max-w-xl mx-auto my-14 glass-panel p-8 rounded-3xl border border-blue-500/30 text-center space-y-5 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mx-auto">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-bold text-white">Access Restricted</h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                This portal is designated exclusively for registered Employers.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                You are currently signed in as an Enforcement Officer ({user?.name}). Use the Inspection Intelligence Queue for establishment audits.
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-center">
+              <button
+                onClick={() => setActiveRole('inspector')}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-blue-500/20"
+              >
+                Return to Inspector Dashboard
+              </button>
+            </div>
+          </div>
         ) : (
+          /* Case 4: Authorized Views */
           <>
             {activeRole === 'landing' && (
               <LandingPage 
-                onNavigate={(role) => setActiveRole(role)} 
+                onOpenLogin={handleOpenLogin}
                 health={health} 
               />
             )}
@@ -137,17 +219,15 @@ function AppContent() {
         )}
       </main>
 
-      {/* Login Modal */}
+      {/* Role-Specific Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative w-full max-w-md">
-            <button
-              onClick={() => setShowLoginModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white text-sm"
-            >
-              ✕
-            </button>
-            <LoginPage onSuccess={() => setShowLoginModal(false)} />
+            <LoginPage 
+              initialRole={loginTargetRole}
+              onSuccess={handleLoginSuccess}
+              onCancel={() => setShowLoginModal(false)}
+            />
           </div>
         </div>
       )}
@@ -158,14 +238,14 @@ function AppContent() {
         onClose={() => setIsAssistantOpen(false)}
       />
 
-      {/* GovTech Footer */}
+      {/* Clean GovTech Product Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
           <p>
-            ShramAI • Digital Shram Sankalp PS 05 Research-Grade Prototype
+            ShramAI • AI-Powered Labour Compliance & Inspection Intelligence
           </p>
-          <p className="font-mono text-[11px]">
-            FastAPI + React TypeScript + JWT RBAC + PostgreSQL (pgvector) + XGBoost + LangGraph
+          <p className="font-mono text-[11px] text-slate-600">
+            Deterministic Statutory Validation • Calibrated Machine Learning • Evidence-Backed Audit
           </p>
         </div>
       </footer>

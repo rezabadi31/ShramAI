@@ -17,6 +17,15 @@ import { MOCK_ESTABLISHMENTS, MOCK_DOSSIER } from './mockData';
 
 const API_BASE = '/api/v1';
 
+export function authHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = localStorage.getItem('shram_token');
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function fetchHealth(): Promise<SystemHealth> {
   try {
     const response = await fetch(`${API_BASE}/health`);
@@ -44,7 +53,9 @@ export async function fetchHealth(): Promise<SystemHealth> {
 
 export async function fetchEstablishments(): Promise<Establishment[]> {
   try {
-    const response = await fetch(`${API_BASE}/establishments`);
+    const response = await fetch(`${API_BASE}/establishments`, {
+      headers: authHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
@@ -57,7 +68,9 @@ export async function fetchEstablishments(): Promise<Establishment[]> {
 
 export async function fetchEstablishmentDossier(establishmentId: string): Promise<EstablishmentDossier> {
   try {
-    const response = await fetch(`${API_BASE}/establishments/${establishmentId}`);
+    const response = await fetch(`${API_BASE}/establishments/${establishmentId}`, {
+      headers: authHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
@@ -1204,7 +1217,9 @@ export async function getComprehensiveExplanation(establishmentId: string = "EST
 
 export async function getEmployerComplianceProfile(establishmentId: string = "EST-001"): Promise<any> {
   try {
-    const response = await fetch(`${API_BASE}/employer/${establishmentId}/profile`);
+    const response = await fetch(`${API_BASE}/employer/${establishmentId}/profile`, {
+      headers: authHeaders(),
+    });
     if (!response.ok) throw new Error('Employer profile fetch failed');
     return await response.json();
   } catch (error) {
@@ -1246,7 +1261,9 @@ export async function getEmployerComplianceProfile(establishmentId: string = "ES
 
 export async function getEmployerPenaltyExposure(establishmentId: string = "EST-001"): Promise<any[]> {
   try {
-    const response = await fetch(`${API_BASE}/employer/${establishmentId}/penalty-exposure`);
+    const response = await fetch(`${API_BASE}/employer/${establishmentId}/penalty-exposure`, {
+      headers: authHeaders(),
+    });
     if (!response.ok) throw new Error('Penalty exposure fetch failed');
     return await response.json();
   } catch (error) {

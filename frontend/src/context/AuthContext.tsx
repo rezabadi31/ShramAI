@@ -41,12 +41,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('shram_user');
-    return saved ? JSON.parse(saved) : DEMO_PROFILES.inspector;
+    try {
+      const saved = localStorage.getItem('shram_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('shram_token') || 'demo-jwt-token';
+    return localStorage.getItem('shram_token') || null;
   });
 
   useEffect(() => {
@@ -57,17 +61,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = (email: string, role: Role, name: string, tokenStr: string) => {
-    const profile = DEMO_PROFILES[role] || {
+  const login = (email: string, role: Role, name: string, tokenStr: string, establishmentId?: string) => {
+    const defaultProfile = DEMO_PROFILES[role] || {
       id: `USR-${role.toUpperCase()}`,
       email,
       name,
       role,
       designation: role.toUpperCase(),
+      establishment_id: establishmentId,
+    };
+    const profile: UserProfile = {
+      ...defaultProfile,
+      email,
+      name,
+      role,
+      establishment_id: establishmentId !== undefined ? establishmentId : defaultProfile.establishment_id,
     };
     setUser(profile);
     setToken(tokenStr);
     localStorage.setItem('shram_token', tokenStr);
+    localStorage.setItem('shram_user', JSON.stringify(profile));
   };
 
   const logout = () => {
@@ -75,12 +88,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     localStorage.removeItem('shram_user');
     localStorage.removeItem('shram_token');
+    sessionStorage.clear();
   };
 
   const switchPersona = (role: Role) => {
     const profile = DEMO_PROFILES[role];
     setUser(profile);
-    setToken(`demo-jwt-${role}`);
+    const mockToken = `jwt-token-${role}`;
+    setToken(mockToken);
+    localStorage.setItem('shram_token', mockToken);
+    localStorage.setItem('shram_user', JSON.stringify(profile));
   };
 
   return (

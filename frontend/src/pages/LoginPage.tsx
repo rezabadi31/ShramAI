@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Lock, UserCheck, Building2, ShieldAlert, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Lock, Building2, FileSearch, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Role } from '../types';
 
 interface LoginPageProps {
-  onSuccess: () => void;
+  initialRole?: 'employer' | 'inspector';
+  onSuccess: (role: 'employer' | 'inspector') => void;
+  onCancel?: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
-  const { login, switchPersona } = useAuth();
-  const [email, setEmail] = useState('inspector@shram.gov.in');
-  const [password, setPassword] = useState('Inspector@123');
+export const LoginPage: React.FC<LoginPageProps> = ({ 
+  initialRole = 'employer', 
+  onSuccess,
+  onCancel,
+}) => {
+  const { login } = useAuth();
+  const [selectedRole, setSelectedRole] = useState<'employer' | 'inspector'>(initialRole);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleCustomLogin = async (e: React.FormEvent) => {
+  // Sync role credentials when switching role tab or opening
+  useEffect(() => {
+    if (selectedRole === 'employer') {
+      setEmail('employer@abcindustries.com');
+      setPassword('Employer@123');
+    } else {
+      setEmail('inspector@shram.gov.in');
+      setPassword('Inspector@123');
+    }
+    setError('');
+  }, [selectedRole]);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -27,122 +46,170 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid credentials');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Authentication failed. Please verify credentials.');
       }
 
       const data = await response.json();
-      login(data.email, data.role as Role, data.name, data.access_token);
-      onSuccess();
+
+      // Strict backend role verification
+      const userRole = data.role as Role;
+      if (selectedRole === 'employer' && userRole !== 'employer') {
+        throw new Error('Access Restricted — Your account is not an Employer account.');
+      }
+      if (selectedRole === 'inspector' && userRole !== 'inspector' && userRole !== 'admin') {
+        throw new Error('Access Restricted — Your account does not have Inspector permissions.');
+      }
+
+      login(data.email, userRole, data.name, data.access_token);
+      onSuccess(selectedRole);
     } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please verify credentials.');
+      setError(err.message || 'Authentication error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickPersona = (role: Role) => {
-    switchPersona(role);
-    onSuccess();
-  };
+  const isEmployer = selectedRole === 'employer';
 
   return (
-    <div className="max-w-md mx-auto my-12 glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
+    <div className="w-full max-w-md mx-auto glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl bg-slate-900/95 backdrop-blur-xl">
       
-      {/* GovTech Seal */}
+      {/* Brand Header */}
       <div className="text-center space-y-2">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 via-blue-600 to-emerald-600 mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <ShieldCheck className="w-8 h-8 text-white" />
+        <div className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-lg transition ${
+          isEmployer 
+            ? 'bg-gradient-to-br from-amber-500 to-amber-700 shadow-amber-500/20 text-slate-950' 
+            : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/20 text-white'
+        }`}>
+          {isEmployer ? <Building2 className="w-7 h-7" /> : <ShieldCheck className="w-7 h-7" />}
         </div>
-        <h1 className="text-xl font-extrabold text-white">ShramAI Secure Authentication</h1>
-        <p className="text-xs text-slate-400">
-          Role-Based Access Control • Central Labour Sphere Portal
+        <h1 className="text-xl font-extrabold text-white">
+          {isEmployer ? 'Employer Portal Login' : 'Labour Inspector Login'}
+        </h1>
+        <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          {isEmployer 
+            ? 'Access your establishment compliance filings, self-audits, and corrective actions.'
+            : 'Access statutory risk intelligence, priority inspection queues, and field dockets.'
+          }
         </p>
       </div>
 
-      {/* Quick Demo Switcher Buttons */}
-      <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-2.5">
-        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold block">
-          One-Click Demo Personas:
-        </span>
-        <div className="grid grid-cols-1 gap-2">
-          <button
-            type="button"
-            onClick={() => handleQuickPersona('inspector')}
-            className="flex items-center justify-between p-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-semibold transition"
-          >
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-blue-400" />
-              <span>Inspector (S. K. Sharma)</span>
-            </div>
-            <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
-          </button>
+      {/* Role Selection Tabs */}
+      <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-950/80 border border-slate-800">
+        <button
+          type="button"
+          onClick={() => setSelectedRole('employer')}
+          className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            isEmployer 
+              ? 'bg-amber-500 text-slate-950 shadow-md font-bold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Employer</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => handleQuickPersona('employer')}
-            className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 text-xs font-semibold transition"
-          >
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-amber-400" />
-              <span>Employer (ABC Industries Ltd.)</span>
-            </div>
-            <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleQuickPersona('admin')}
-            className="flex items-center justify-between p-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-200 text-xs font-semibold transition"
-          >
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-purple-400" />
-              <span>Admin (Chief Enforcement Officer)</span>
-            </div>
-            <ArrowRight className="w-3.5 h-3.5 text-purple-400" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setSelectedRole('inspector')}
+          className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            !isEmployer 
+              ? 'bg-blue-600 text-white shadow-md font-bold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <FileSearch className="w-3.5 h-3.5" />
+          <span>Inspector</span>
+        </button>
       </div>
 
-      {/* Manual Credentials Form */}
-      <form onSubmit={handleCustomLogin} className="space-y-4 pt-2 border-t border-slate-800">
-        {error && (
-          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
-            {error}
-          </div>
-        )}
+      {/* Error Banner */}
+      {error && (
+        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2 animate-shake">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
 
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-300">Authorized Email Address</label>
+      {/* Login Form */}
+      <form onSubmit={handleLoginSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-300">
+            {isEmployer ? 'Establishment Email' : 'Official Government Email'}
+          </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-cyan-500 transition font-mono"
+            placeholder={isEmployer ? 'employer@abcindustries.com' : 'inspector@shram.gov.in'}
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-300">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
-          />
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-300">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-cyan-500 transition font-mono pr-9"
+              placeholder="••••••••"
+            />
+            <Lock className="w-4 h-4 text-slate-500 absolute right-3 top-3 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Demo Credentials Reminder Note */}
+        <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+          <div className="flex items-center justify-between text-slate-300 font-semibold">
+            <span>Demo Profile:</span>
+            <span className="font-mono text-[10px] text-cyan-400">
+              {isEmployer ? 'EST-001 (ABC Industries Ltd.)' : 'Central Enforcement Officer'}
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400">
+            Credentials auto-populated for verification. Click Sign In to authenticate.
+          </p>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
+          className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg cursor-pointer disabled:opacity-50 ${
+            isEmployer
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/20'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25'
+          }`}
         >
-          <Lock className="w-3.5 h-3.5" />
-          <span>{loading ? 'Authenticating...' : 'Sign In with Credentials'}</span>
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Authenticating...</span>
+            </>
+          ) : (
+            <>
+              <span>Sign In to {isEmployer ? 'Employer Portal' : 'Inspector Portal'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
-      </form>
 
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 transition cursor-pointer"
+          >
+            Cancel & Return to Launch Page
+          </button>
+        )}
+      </form>
     </div>
   );
 };

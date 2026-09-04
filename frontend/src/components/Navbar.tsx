@@ -4,12 +4,12 @@ import {
   Building2, 
   FileSearch, 
   UploadCloud, 
-  Bot,
-  UserCheck,
-  LogOut,
-  ChevronDown
+  Bot, 
+  LogOut, 
+  ChevronDown, 
+  FileCheck
 } from 'lucide-react';
-import { ActiveRole, SystemHealth, Role } from '../types';
+import { ActiveRole, SystemHealth } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
@@ -17,7 +17,7 @@ interface NavbarProps {
   onSelectRole: (role: ActiveRole) => void;
   health: SystemHealth | null;
   onOpenAssistant: () => void;
-  onOpenLogin: () => void;
+  onOpenLogin: (role: 'employer' | 'inspector') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,178 +27,216 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAssistant,
   onOpenLogin,
 }) => {
-  const { user, switchPersona, logout } = useAuth();
-  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
+  const { user, logout } = useAuth();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    onSelectRole('landing');
+    setShowProfileMenu(false);
+  };
 
   return (
-    <header className="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+    <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo & Tag */}
+        {/* Brand Logo & Clean Product Identity */}
         <div 
-          onClick={() => onSelectRole('landing')}
+          onClick={() => {
+            if (!user) {
+              onSelectRole('landing');
+            } else if (user.role === 'employer') {
+              onSelectRole('employer');
+            } else {
+              onSelectRole('inspector');
+            }
+          }}
           className="flex items-center gap-3 cursor-pointer select-none group"
         >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 via-blue-600 to-emerald-600 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-slate-100 to-emerald-400">
-                ShramAI
-              </span>
-              <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">
-                PS 05 Prototype
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Digital Shram Sankalp • Labour Compliance Intelligence
+            <span className="font-extrabold text-base tracking-tight text-white block">
+              ShramAI
+            </span>
+            <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
+              AI-Powered Labour Compliance & Inspection Intelligence
             </p>
           </div>
         </div>
 
-        {/* Role & Screen Navigation Switcher */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
-          <button
-            onClick={() => onSelectRole('landing')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeRole === 'landing'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-            }`}
-          >
-            Overview
-          </button>
+        {/* Navigation Bar — Dynamically Rendered Strictly by Role */}
+        <nav className="flex items-center gap-1">
           
-          <button
-            onClick={() => onSelectRole('employer')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeRole === 'employer'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5 text-amber-400" />
-            Employer Portal
-          </button>
-
-          <button
-            onClick={() => onSelectRole('inspector')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeRole === 'inspector' || activeRole === 'establishment-detail'
-                ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-            }`}
-          >
-            <FileSearch className="w-3.5 h-3.5 text-blue-400" />
-            Inspector Queue
-          </button>
-
-          <button
-            onClick={() => onSelectRole('upload')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeRole === 'upload'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-            }`}
-          >
-            <UploadCloud className="w-3.5 h-3.5 text-emerald-400" />
-            Document Center
-          </button>
-        </nav>
-
-        {/* User Persona & Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* AI Assistant Drawer Trigger */}
-          <button
-            onClick={onOpenAssistant}
-            className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-purple-900/50 to-indigo-900/50 hover:from-purple-800/60 hover:to-indigo-800/60 text-purple-200 px-3 py-1.5 rounded-lg border border-purple-500/40 shadow-sm transition"
-          >
-            <Bot className="w-3.5 h-3.5 text-purple-300" />
-            <span className="hidden sm:inline font-medium">Labour AI</span>
-          </button>
-
-          {/* User Persona Switcher Dropdown */}
-          {user ? (
-            <div className="relative">
+          {/* Unauthenticated View: No internal portals visible */}
+          {!user && (
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
-                onClick={() => setShowPersonaMenu(!showPersonaMenu)}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 text-xs transition"
+                onClick={() => onOpenLogin('employer')}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer"
               >
-                <div className={`w-2 h-2 rounded-full ${
-                  user.role === 'inspector' ? 'bg-blue-400' : user.role === 'employer' ? 'bg-amber-400' : 'bg-purple-400'
-                }`} />
-                <div className="text-left hidden sm:block">
-                  <div className="text-[11px] font-bold text-slate-200 leading-tight">{user.name}</div>
-                  <div className="text-[9px] uppercase font-mono text-slate-400">{user.role}</div>
-                </div>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Employer Login</span>
               </button>
 
-              {showPersonaMenu && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 space-y-1 z-50">
-                  <div className="px-3 py-2 border-b border-slate-800/80 text-[11px] text-slate-400">
-                    <span className="text-slate-500 font-mono block text-[9px] uppercase">Designation:</span>
-                    <span className="text-slate-300 font-medium">{user.designation}</span>
+              <button
+                onClick={() => onOpenLogin('inspector')}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-500/20 transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <FileSearch className="w-3.5 h-3.5" />
+                <span>Inspector Login</span>
+              </button>
+            </div>
+          )}
+
+          {/* Employer Navigation: STRICTLY employer relevant features */}
+          {user && user.role === 'employer' && (
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
+              <button
+                onClick={() => onSelectRole('employer')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  activeRole === 'employer'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                Overview
+              </button>
+
+              <button
+                onClick={() => onSelectRole('upload')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  activeRole === 'upload'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <UploadCloud className="w-3.5 h-3.5 text-amber-400" />
+                <span>Documents</span>
+              </button>
+
+              <button
+                onClick={() => onSelectRole('employer')}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 transition cursor-pointer"
+              >
+                <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Compliance</span>
+              </button>
+
+              <button
+                onClick={onOpenAssistant}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 hover:text-cyan-200 hover:bg-cyan-500/10 transition cursor-pointer"
+              >
+                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">AI Assistant</span>
+              </button>
+            </div>
+          )}
+
+          {/* Inspector Navigation: STRICTLY inspector relevant features */}
+          {user && (user.role === 'inspector' || user.role === 'admin') && (
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
+              <button
+                onClick={() => onSelectRole('inspector')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  activeRole === 'inspector'
+                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                Overview
+              </button>
+
+              <button
+                onClick={() => onSelectRole('inspector')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  activeRole === 'inspector' || activeRole === 'establishment-detail'
+                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                }`}
+              >
+                <FileSearch className="w-3.5 h-3.5 text-blue-400" />
+                <span>Inspection Queue</span>
+              </button>
+
+              <button
+                onClick={onOpenAssistant}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 hover:text-cyan-200 hover:bg-cyan-500/10 transition cursor-pointer"
+              >
+                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">Labour AI</span>
+              </button>
+            </div>
+          )}
+        </nav>
+
+        {/* Right Controls: User Profile & Logout */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Health indicator */}
+          {health && (
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400">
+              <span className={`w-2 h-2 rounded-full ${health.status === 'healthy' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              <span className="font-mono">{health.status}</span>
+            </div>
+          )}
+
+          {/* Authenticated User Menu */}
+          {user && (
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition cursor-pointer"
+              >
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
+                  user.role === 'employer' ? 'bg-amber-500 text-slate-950' : 'bg-blue-600 text-white'
+                }`}>
+                  {user.name[0]}
+                </div>
+                <div className="text-left hidden md:block">
+                  <p className="text-xs font-semibold text-white leading-tight">{user.name}</p>
+                  <p className="text-[10px] text-slate-400 capitalize">{user.role}</p>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {/* Profile Dropdown */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-64 glass-panel rounded-2xl border border-slate-800 shadow-2xl p-3 space-y-3 z-50 bg-slate-900">
+                  <div className="space-y-1 pb-2 border-b border-slate-800">
+                    <p className="text-xs font-bold text-white">{user.name}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{user.email}</p>
+                    <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${
+                      user.role === 'employer' 
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                        : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    }`}>
+                      {user.designation}
+                    </span>
+                    {user.establishment_id && (
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Establishment: <strong className="text-amber-400 font-mono">{user.establishment_id}</strong>
+                      </p>
+                    )}
+                    {user.jurisdiction && (
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Jurisdiction: <strong className="text-blue-400">{user.jurisdiction}</strong>
+                      </p>
+                    )}
                   </div>
 
-                  <span className="text-[10px] font-mono text-slate-500 px-3 py-1 block uppercase">
-                    Switch Active Role:
-                  </span>
-
-                  {(['inspector', 'employer', 'admin'] as Role[]).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => {
-                        switchPersona(r);
-                        setShowPersonaMenu(false);
-                        if (r === 'employer') onSelectRole('employer');
-                        if (r === 'inspector') onSelectRole('inspector');
-                      }}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold capitalize flex items-center justify-between ${
-                        user.role === r
-                          ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      <span>{r}</span>
-                      {user.role === r && <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
-                    </button>
-                  ))}
-
-                  <div className="pt-1 border-t border-slate-800/80">
-                    <button
-                      onClick={() => {
-                        logout();
-                        setShowPersonaMenu(false);
-                        onOpenLogin();
-                      }}
-                      className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-between p-2 rounded-xl text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition cursor-pointer"
+                  >
+                    <span>Sign Out & Lock Session</span>
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
             </div>
-          ) : (
-            <button
-              onClick={onOpenLogin}
-              className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-lg transition shadow-sm"
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </button>
           )}
-
-          {/* Backend Status Dot */}
-          <div className="hidden lg:flex items-center gap-1.5 text-[11px] font-mono bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800">
-            <span className={`w-1.5 h-1.5 rounded-full ${health?.status === 'healthy' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
-            <span className={health?.status === 'healthy' ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold'}>
-              {health?.status === 'healthy' ? 'ONLINE' : 'FALLBACK'}
-            </span>
-          </div>
 
         </div>
 

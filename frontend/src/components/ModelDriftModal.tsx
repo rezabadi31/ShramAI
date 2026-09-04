@@ -308,7 +308,7 @@ export const ModelDriftModal: React.FC<ModelDriftModalProps> = ({ isOpen, onClos
           <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/20 space-y-1 text-xs text-indigo-300">
             <div className="flex items-center gap-1.5 font-bold">
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
-              <span>Digital Shram Sankalp PS 05 Compliance Guarantee</span>
+              <span>ShramAI Algorithmic Governance & Compliance Guarantee</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               ML models only predict objective inspection probabilities based on verifiable statutory registers. Retraining pipelines incorporate both positive and negative human inspector verifications, preventing runaway algorithmic feedback loops and guaranteeing zero automated penalties without independent officer review.
