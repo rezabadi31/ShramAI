@@ -877,3 +877,46 @@ export type InspectorReportDownload = {
   evidence_graph_nodes_count: number;
 };
 
+export type SubsystemMetric = {
+  name: string;
+  status: string;
+  latency_ms: number;
+  details: string;
+};
+
+export type StatutoryCoverageMetric = {
+  code_name: string;
+  statutory_sections_count: number;
+  rule_templates_count: number;
+  coverage_status: string;
+};
+
+export type SystemDiagnostics = {
+  status: string;
+  timestamp: string;
+  uptime_seconds: number;
+  active_test_suite_passed: number;
+  active_test_suite_failed: number;
+  zero_hallucination_guarantee: boolean;
+  rbac_enforcement_status: string;
+  model_version: string;
+  subsystems: SubsystemMetric[];
+  statutory_coverage: StatutoryCoverageMetric[];
+};
+
+export type DiagnosticProbeResult = {
+  subsystem: string;
+  status: string;
+  latency_ms: number;
+  output: Record<string, any>;
+  timestamp: string;
+};
+
+export type DiagnosticProbeBatchResponse = {
+  total_probes: number;
+  all_passed: boolean;
+  results: DiagnosticProbeResult[];
+  timestamp: string;
+};
+
+

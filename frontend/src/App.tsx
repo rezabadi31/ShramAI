@@ -8,6 +8,7 @@ import { DocumentUploadView } from './pages/DocumentUploadView';
 import { AIAssistantDrawer } from './pages/AIAssistantDrawer';
 import { InspectionWorkflow } from './pages/InspectionWorkflow';
 import { LoginPage } from './pages/LoginPage';
+import { SystemDiagnosticsModal } from './components/SystemDiagnosticsModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { fetchHealth, fetchEstablishments, fetchEstablishmentDossier } from './services/api';
 import { ActiveRole, SystemHealth, Establishment, EstablishmentDossier } from './types';
@@ -39,6 +40,7 @@ function AppContent() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedDossier, setSelectedDossier] = useState<EstablishmentDossier>(MOCK_DOSSIER);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.has('login');
@@ -104,6 +106,7 @@ function AppContent() {
         health={health}
         onOpenAssistant={() => setIsAssistantOpen(true)}
         onOpenLogin={handleOpenLogin}
+        onOpenDiagnostics={() => setIsDiagnosticsOpen(true)}
       />
 
       {/* Main Routed Content */}
@@ -257,6 +260,12 @@ function AppContent() {
       <AIAssistantDrawer
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
+      />
+
+      {/* System Diagnostics & Statutory Coverage Telemetry Modal */}
+      <SystemDiagnosticsModal
+        isOpen={isDiagnosticsOpen}
+        onClose={() => setIsDiagnosticsOpen(false)}
       />
 
       {/* Clean GovTech Product Footer */}

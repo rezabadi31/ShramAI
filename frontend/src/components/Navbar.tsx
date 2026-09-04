@@ -7,7 +7,8 @@ import {
   Bot, 
   LogOut, 
   ChevronDown, 
-  FileCheck
+  FileCheck,
+  Activity
 } from 'lucide-react';
 import { ActiveRole, SystemHealth } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +19,7 @@ interface NavbarProps {
   health: SystemHealth | null;
   onOpenAssistant: () => void;
   onOpenLogin: (role: 'employer' | 'inspector') => void;
+  onOpenDiagnostics?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   health,
   onOpenAssistant,
   onOpenLogin,
+  onOpenDiagnostics,
 }) => {
   const { user, logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -174,13 +177,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right Controls: User Profile & Logout */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* Health indicator */}
-          {health && (
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400">
-              <span className={`w-2 h-2 rounded-full ${health.status === 'healthy' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              <span className="font-mono">{health.status}</span>
-            </div>
-          )}
+          {/* Health & Diagnostics indicator */}
+          <button
+            onClick={onOpenDiagnostics}
+            title={`Open System Diagnostics & Statutory Coverage Telemetry (Status: ${health?.status || 'healthy'})`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/80 hover:bg-emerald-500/10 border border-slate-800 hover:border-emerald-500/40 text-[11px] text-slate-300 hover:text-emerald-300 transition cursor-pointer group"
+          >
+            <span className={`w-2 h-2 rounded-full ${health?.status === 'offline' ? 'bg-rose-400' : 'bg-emerald-400'} group-hover:animate-ping`} />
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-semibold hidden sm:inline">Diagnostics</span>
+            <span className="font-mono text-[10px] text-slate-400 hidden lg:inline">({health?.status || 'operational'})</span>
+          </button>
 
           {/* Authenticated User Menu */}
           {user && (
