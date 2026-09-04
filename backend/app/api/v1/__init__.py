@@ -27,6 +27,7 @@ from app.api.v1.endpoints import (
     timeline,
     notices,
     drift,
+    analytics,
 )
 
 api_router = APIRouter()
@@ -57,3 +58,4 @@ api_router.include_router(inspection.router, prefix="/inspection")
 api_router.include_router(timeline.router, prefix="/establishments")
 api_router.include_router(notices.router, prefix="/notices")
 api_router.include_router(drift.router, prefix="/ml/drift")
+api_router.include_router(analytics.router, prefix="/analytics")

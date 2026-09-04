@@ -14,12 +14,14 @@ import {
   CalendarCheck,
   Send,
   Activity,
+  MapPin,
 } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
 import { RiskBadge } from '../components/RiskBadge';
 import { SyntheticDataLabModal } from '../components/SyntheticDataLabModal';
 import { ModelBenchmarkModal } from '../components/ModelBenchmarkModal';
 import { ModelDriftModal } from '../components/ModelDriftModal';
+import { MacroAnalyticsModal } from '../components/MacroAnalyticsModal';
 import { Establishment, ActiveRole, PrioritizedEstablishmentItem } from '../types';
 import { getPrioritizedQueue, scheduleInspectionBatch } from '../services/api';
 
@@ -41,6 +43,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   const [isDataLabOpen, setIsDataLabOpen] = useState(false);
   const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
   const [isDriftModalOpen, setIsDriftModalOpen] = useState(false);
+  const [isMacroAnalyticsOpen, setIsMacroAnalyticsOpen] = useState(false);
   const [prioritizedQueue, setPrioritizedQueue] = useState<PrioritizedEstablishmentItem[]>([]);
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledBatchMessage, setScheduledBatchMessage] = useState<string | null>(null);
@@ -116,6 +119,13 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           >
             <Activity className="w-3.5 h-3.5 text-purple-400" />
             <span>Drift & Retraining</span>
+          </button>
+          <button
+            onClick={() => setIsMacroAnalyticsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs border border-indigo-500/30 transition cursor-pointer"
+          >
+            <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Macro Analytics</span>
           </button>
           <button
             onClick={() => {
@@ -395,6 +405,12 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       <ModelDriftModal
         isOpen={isDriftModalOpen}
         onClose={() => setIsDriftModalOpen(false)}
+      />
+
+      {/* Macro Compliance Analytics Modal */}
+      <MacroAnalyticsModal
+        isOpen={isMacroAnalyticsOpen}
+        onClose={() => setIsMacroAnalyticsOpen(false)}
       />
 
     </div>

@@ -776,3 +776,48 @@ export type RetrainTriggerResponse = {
   improvement_delta: number;
   message: string;
 };
+
+export type JurisdictionMetric = {
+  jurisdiction_id: string;
+  jurisdiction_name: string;
+  sphere: string;
+  total_establishments: number;
+  audited_count: number;
+  high_risk_count: number;
+  average_risk_score: number;
+  compliance_rate_pct: number;
+  arrears_recovered_inr: number;
+  notices_issued_count: number;
+};
+
+export type SectorRiskMetric = {
+  sector_id: string;
+  sector_name: string;
+  hazard_tier: 'HIGH_HAZARD' | 'MEDIUM_HAZARD' | 'LOW_HAZARD' | string;
+  total_units: number;
+  non_compliance_rate_pct: number;
+  top_violation_code: string;
+  estimated_underpayment_inr: number;
+};
+
+export type MonthlyTrendPoint = {
+  month: string;
+  audits_completed: number;
+  violations_detected: number;
+  safe_harbour_achieved: number;
+  compliance_index: number;
+};
+
+export type MacroOverviewResponse = {
+  national_compliance_index: number;
+  total_registered_workforce: number;
+  total_active_establishments: number;
+  total_inspections_scheduled_quarter: number;
+  total_penalties_assessed_inr: number;
+  total_arrears_recovered_inr: number;
+  safe_harbour_achieved_count: number;
+  jurisdictions: JurisdictionMetric[];
+  sectors: SectorRiskMetric[];
+  monthly_trend: MonthlyTrendPoint[];
+  metadata?: Record<string, any>;
+};
