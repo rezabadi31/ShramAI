@@ -681,3 +681,25 @@ export type EmployerComplianceProfile = {
   safe_harbour_window_days: number;
   timestamp: string;
 };
+
+export type TimelineEvent = {
+  event_id: string;
+  event_type: string;
+  timestamp: string;
+  date_label: string;
+  actor: string;
+  actor_type: 'EMPLOYER' | 'INSPECTOR' | 'SYSTEM' | 'ML_ENGINE' | string;
+  title: string;
+  description: string;
+  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | string;
+  metadata?: Record<string, any>;
+};
+
+export type EstablishmentTimeline = {
+  establishment_id: string;
+  establishment_name: string;
+  total_events: number;
+  first_audit_date: string;
+  last_activity_date: string;
+  events: TimelineEvent[];
+};

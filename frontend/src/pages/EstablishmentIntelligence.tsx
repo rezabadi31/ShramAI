@@ -22,14 +22,16 @@ import {
   TrendingUp,
   TrendingDown,
   ShieldAlert,
-  ClipboardList
+  ClipboardList,
+  History
 } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
 import { EvidenceGraphModal } from '../components/EvidenceGraphModal';
 import { RiskFeatureMatrixModal } from '../components/RiskFeatureMatrixModal';
-import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse, RiskAgentAuditResult, ComprehensiveExplanationResponse } from '../types';
-import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit, getComprehensiveExplanation } from '../services/api';
+import { ComplianceTimeline } from '../components/ComplianceTimeline';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse, RiskAgentAuditResult, ComprehensiveExplanationResponse, EstablishmentTimeline } from '../types';
+import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit, getComprehensiveExplanation, getEstablishmentTimeline } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -38,7 +40,7 @@ interface EstablishmentIntelligenceProps {
   onBeginInspection?: () => void;
 }
 
-type TabType = 'overview' | 'documents' | 'findings' | 'anomalies' | 'shap' | 'brief' | 'feedback';
+type TabType = 'overview' | 'documents' | 'findings' | 'anomalies' | 'shap' | 'brief' | 'feedback' | 'timeline';
 
 export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps> = ({
   dossier,
@@ -63,6 +65,8 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [isRiskAgentRunning, setIsRiskAgentRunning] = useState(false);
   const [explanation, setExplanation] = useState<ComprehensiveExplanationResponse | null>(null);
   const [explanationAudience, setExplanationAudience] = useState<'inspector' | 'employer'>('inspector');
+  const [timelineData, setTimelineData] = useState<EstablishmentTimeline | null>(null);
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState<boolean>(false);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -94,6 +98,15 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
     getComprehensiveExplanation(establishment.id).then(res => {
       setExplanation(res);
     }).catch(err => console.error(err));
+
+    setIsLoadingTimeline(true);
+    getEstablishmentTimeline(establishment.id).then(res => {
+      setTimelineData(res);
+    }).catch(err => {
+      console.error(err);
+    }).finally(() => {
+      setIsLoadingTimeline(false);
+    });
   }, [establishment.id]);
 
   const handleRunOrchestrator = async () => {
@@ -353,6 +366,7 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
           { id: 'anomalies', label: `Cross-Doc Anomalies (${anomalies.length})`, icon: AlertTriangle },
           { id: 'shap', label: 'SHAP Risk Explanation', icon: Activity },
           { id: 'brief', label: 'AI Inspection Brief', icon: Bot },
+          { id: 'timeline', label: `Audit Timeline (${timelineData?.total_events || 0})`, icon: History },
           { id: 'feedback', label: 'Inspector Verification', icon: ShieldCheck },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -1283,6 +1297,11 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
             </div>
           )}
         </div>
+      )}
+
+      {/* Tab 8: COMPLIANCE AUDIT TRAIL TIMELINE */}
+      {activeTab === 'timeline' && (
+        <ComplianceTimeline timeline={timelineData} isLoading={isLoadingTimeline} />
       )}
 
       {/* Evidence Graph & Provenance Modal */}

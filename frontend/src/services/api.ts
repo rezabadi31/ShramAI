@@ -6,6 +6,7 @@ import {
   DocumentIntelligenceResult,
   NormalizedDocumentDossier,
   LabourCodeSummary,
+  EstablishmentTimeline,
 } from '../types';
 import { MOCK_ESTABLISHMENTS, MOCK_DOSSIER } from './mockData';
 
@@ -1248,5 +1249,143 @@ export async function getEmployerPenaltyExposure(establishmentId: string = "EST-
       { code_name: "Code on Wages, 2019", section: "Section 54(1)", violation_description: "Payment below minimum wage floor", maximum_fine_inr: 50000, applicable: true },
       { code_name: "OSHWC Code, 2020", section: "Section 96", violation_description: "No Safety Committee for 250+ workers", maximum_fine_inr: 200000, applicable: true },
     ];
+  }
+}
+
+export async function getEstablishmentTimeline(establishmentId: string = "EST-001"): Promise<EstablishmentTimeline> {
+  try {
+    const response = await fetch(`${API_BASE}/establishments/${establishmentId}/timeline`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    return {
+      establishment_id: establishmentId,
+      establishment_name: establishmentId === "EST-002" ? "Western Logistics Hub" : "ABC Manufacturing Pvt Ltd",
+      total_events: 10,
+      first_audit_date: "2024-07-02",
+      last_activity_date: "2024-10-25",
+      events: [
+        {
+          event_id: "evt-01",
+          event_type: "DOCUMENT_SUBMITTED",
+          timestamp: "2024-07-02T09:15:00",
+          date_label: "2 Jul 2024",
+          actor: "Employer HR Portal",
+          actor_type: "EMPLOYER",
+          title: "Q1 Statutory Register Batch Submission",
+          description: "Employer submitted Form B Wage Register, Form D Attendance Muster Roll, Form A Employee Register, and Bank UTR Scroll for Q1 2024 via Shram Suvidha portal.",
+          severity: "INFO",
+          metadata: { documents: ["Form B", "Form D", "Form A", "Bank UTR Scroll"], quarter: "Q1-2024" }
+        },
+        {
+          event_id: "evt-02",
+          event_type: "COMPLIANCE_EVALUATED",
+          timestamp: "2024-07-02T10:32:00",
+          date_label: "2 Jul 2024",
+          actor: "ShramAI Document Agent",
+          actor_type: "SYSTEM",
+          title: "Automated Rule Engine Evaluation Completed",
+          description: "Deterministic rule engine processed 4 statutory documents. Identified 1 wage rate discrepancy in Form B for Shift B workers and 1 headcount gap between Form D and Form B.",
+          severity: "HIGH",
+          metadata: { rules_checked: 18, violations: 2, compliant: 16 }
+        },
+        {
+          event_id: "evt-03",
+          event_type: "ANOMALY_DETECTED",
+          timestamp: "2024-07-02T10:33:45",
+          date_label: "2 Jul 2024",
+          actor: "ShramAI Cross-Register Anomaly Engine",
+          actor_type: "ML_ENGINE",
+          title: "Cross-Register Headcount Anomaly Flagged",
+          description: "5 workers present in Form D Attendance Muster Roll not reflected in Form B Wage Register. Possible ghost worker payroll or unregistered contractor arrangement.",
+          severity: "HIGH",
+          metadata: { anomaly_type: "HEADCOUNT_MISMATCH", delta: 5 }
+        },
+        {
+          event_id: "evt-04",
+          event_type: "RISK_ASSESSED",
+          timestamp: "2024-07-02T10:35:00",
+          date_label: "2 Jul 2024",
+          actor: "XGBoost ML Risk Model v2.1",
+          actor_type: "ML_ENGINE",
+          title: "ML Risk Score Computed: 84.5 / 100",
+          description: "XGBoost champion model (AUC 0.91, PR-AUC 0.87) computed risk score of 84.5. Key SHAP drivers: wage_violation_count (+28.4), ghost_worker_count (+18.7), high_hazard_sector (+12.3). Priority: HIGH.",
+          severity: "HIGH",
+          metadata: { risk_score: 84.5, priority: "HIGH", model: "XGBoost v2.1", auc: 0.91 }
+        },
+        {
+          event_id: "evt-05",
+          event_type: "NOTICE_ISSUED",
+          timestamp: "2024-07-05T14:00:00",
+          date_label: "5 Jul 2024",
+          actor: "Labour Inspector — INS-OFFICER-37",
+          actor_type: "INSPECTOR",
+          title: "Statutory Clarification Notice Issued",
+          description: "Inspector issued written notice under Code on Wages 2019 Section 50 requesting the employer to furnish explanation for the 5-worker headcount gap within 7 working days.",
+          severity: "MEDIUM",
+          metadata: { notice_ref: "SHRAM/NOT/2024/07-037", response_deadline_days: 7 }
+        },
+        {
+          event_id: "evt-06",
+          event_type: "INSPECTION_SCHEDULED",
+          timestamp: "2024-07-10T11:00:00",
+          date_label: "10 Jul 2024",
+          actor: "District Labour Commissioner Office",
+          actor_type: "INSPECTOR",
+          title: "On-Site Verification Inspection Scheduled",
+          description: "Objective inspection algorithm scheduled on-site verification under OSHWC Code 2020 Section 42 for facility physical verification and worker interviews.",
+          severity: "HIGH",
+          metadata: { inspection_date: "2024-07-18", inspector_assigned: "INS-OFFICER-37", algorithm_basis: "RISK_TIER_HIGH" }
+        },
+        {
+          event_id: "evt-07",
+          event_type: "VIOLATION_DETECTED",
+          timestamp: "2024-07-18T16:45:00",
+          date_label: "18 Jul 2024",
+          actor: "Labour Inspector — INS-OFFICER-37",
+          actor_type: "INSPECTOR",
+          title: "On-Site Physical Inspection Findings Filed",
+          description: "Physical inspection confirmed 3 contract workers paid below statutory minimum wage floor and fire exit blocked in Bay 4. Digital evidence and geo-tagged photos logged.",
+          severity: "CRITICAL",
+          metadata: { violations_found: 3, evidence_count: 5, penalty_code: "COW_S54_OSH_S96" }
+        },
+        {
+          event_id: "evt-08",
+          event_type: "PENALTY_PROPOSED",
+          timestamp: "2024-07-20T09:00:00",
+          date_label: "20 Jul 2024",
+          actor: "ShramAI Compliance Engine",
+          actor_type: "SYSTEM",
+          title: "Statutory Penalty Exposure Assessed: ₹3,20,000",
+          description: "Statutory compoundable penalty calculated under Code on Wages Section 54(1) (₹50,000) and OSHWC Code Section 96 (₹2,00,000) with ₹70,000 wage arrear recovery recommended.",
+          severity: "CRITICAL",
+          metadata: { total_penalty_inr: 320000, compoundable: true, section_references: ["COW S54(1)", "OSHWC S96"] }
+        },
+        {
+          event_id: "evt-09",
+          event_type: "REMEDIATION_SUBMITTED",
+          timestamp: "2024-08-05T15:30:00",
+          date_label: "5 Aug 2024",
+          actor: "ABC Industries Compliance Head",
+          actor_type: "EMPLOYER",
+          title: "Remediation Evidence & Arrear Disbursal Scroll Submitted",
+          description: "Employer submitted RTGS payment scroll confirming ₹7,800 wage differential paid to 3 affected workers and photographic proof of unblocked Bay 4 fire escape route.",
+          severity: "LOW",
+          metadata: { arrear_paid_inr: 7800, workers_benefited: 3, evidence_hash: "sha256:7f8a9b2c..." }
+        },
+        {
+          event_id: "evt-10",
+          event_type: "SAFE_HARBOUR_ACHIEVED",
+          timestamp: "2024-10-25T17:00:00",
+          date_label: "25 Oct 2024",
+          actor: "Joint Labour Commissioner Review Board",
+          actor_type: "SYSTEM",
+          title: "Safe Harbour Status Granted — Risk Downgraded to MODERATE",
+          description: "Establishment successfully satisfied all remediation conditions within the 90-day statutory grace window. ML risk score downgraded from 84.5 to 38.2. Inspection closed.",
+          severity: "INFO",
+          metadata: { new_risk_score: 38.2, safe_harbour_valid_until: "2025-10-25", status: "CLOSED_COMPLIANT" }
+        }
+      ]
+    };
   }
 }
