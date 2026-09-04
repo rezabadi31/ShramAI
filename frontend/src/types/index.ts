@@ -703,3 +703,39 @@ export type EstablishmentTimeline = {
   last_activity_date: string;
   events: TimelineEvent[];
 };
+
+export type NoticeViolationItem = {
+  statutory_code: string;
+  section: string;
+  finding_description: string;
+  prescribed_fine_inr: number;
+  rectification_window_days: number;
+};
+
+export type StatutoryNotice = {
+  notice_id: string;
+  notice_number: string;
+  notice_type: string;
+  establishment_id: string;
+  establishment_name: string;
+  registration_number: string;
+  issuing_authority: string;
+  issuing_officer: string;
+  issue_date: string;
+  response_deadline: string;
+  status: 'DRAFT' | 'ISSUED' | 'RESPONDED' | 'COMPOUNDED' | 'CLOSED' | string;
+  summary_narrative: string;
+  violations: NoticeViolationItem[];
+  total_penalty_exposure_inr: number;
+  compoundable: boolean;
+  digital_signature_hash: string;
+  formal_legal_text: string;
+  metadata?: Record<string, any>;
+};
+
+export type GenerateNoticeRequest = {
+  establishment_id: string;
+  notice_type?: string;
+  issuing_officer?: string;
+  custom_instructions?: string;
+};

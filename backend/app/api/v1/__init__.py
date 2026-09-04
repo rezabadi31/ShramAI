@@ -25,6 +25,7 @@ from app.api.v1.endpoints import (
     employer,
     inspection,
     timeline,
+    notices,
 )
 
 api_router = APIRouter()
@@ -53,3 +54,4 @@ api_router.include_router(explanation.router, prefix="/explanation")
 api_router.include_router(employer.router, prefix="/employer")
 api_router.include_router(inspection.router, prefix="/inspection")
 api_router.include_router(timeline.router, prefix="/establishments")
+api_router.include_router(notices.router, prefix="/notices")

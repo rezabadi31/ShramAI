@@ -30,8 +30,9 @@ import { StatutoryReferenceCard } from '../components/StatutoryReferenceCard';
 import { EvidenceGraphModal } from '../components/EvidenceGraphModal';
 import { RiskFeatureMatrixModal } from '../components/RiskFeatureMatrixModal';
 import { ComplianceTimeline } from '../components/ComplianceTimeline';
-import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse, RiskAgentAuditResult, ComprehensiveExplanationResponse, EstablishmentTimeline } from '../types';
-import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit, getComprehensiveExplanation, getEstablishmentTimeline } from '../services/api';
+import { StatutoryNoticeViewerModal } from '../components/StatutoryNoticeViewerModal';
+import { EstablishmentDossier, ActiveRole, ComplianceAuditReport, OrchestrationExecutionResponse, DocumentAgentAuditResult, ComplianceAgentAuditResult, CrossDocumentAuditResult, ShapLocalExplanationResponse, RiskAgentAuditResult, ComprehensiveExplanationResponse, EstablishmentTimeline, StatutoryNotice } from '../types';
+import { evaluateCompliance, runAgentOrchestration, auditEstablishmentDocuments, runComplianceAgentAudit, reconcileEstablishmentAnomalies, getEstablishmentShapExplanation, runRiskAgentAudit, getComprehensiveExplanation, getEstablishmentTimeline, getEstablishmentNotices, generateStatutoryNotice, updateNoticeStatus } from '../services/api';
 
 interface EstablishmentIntelligenceProps {
   dossier: EstablishmentDossier;
@@ -67,6 +68,9 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
   const [explanationAudience, setExplanationAudience] = useState<'inspector' | 'employer'>('inspector');
   const [timelineData, setTimelineData] = useState<EstablishmentTimeline | null>(null);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState<boolean>(false);
+  const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
+  const [activeNotice, setActiveNotice] = useState<StatutoryNotice | null>(null);
+  const [isNoticeLoading, setIsNoticeLoading] = useState(false);
 
   const { establishment, documents, findings, anomalies, shap_contributions, ai_inspection_brief } = dossier;
 
@@ -108,6 +112,24 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
       setIsLoadingTimeline(false);
     });
   }, [establishment.id]);
+
+  const handleOpenNoticeModal = async () => {
+    setIsNoticeLoading(true);
+    setIsNoticeModalOpen(true);
+    try {
+      const notices = await getEstablishmentNotices(establishment.id);
+      if (notices && notices.length > 0) {
+        setActiveNotice(notices[0]);
+      } else {
+        const generated = await generateStatutoryNotice({ establishment_id: establishment.id });
+        setActiveNotice(generated);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsNoticeLoading(false);
+    }
+  };
 
   const handleRunOrchestrator = async () => {
     setIsOrchestrating(true);
@@ -198,6 +220,13 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
                 <span>Run Agentic AI Audit</span>
               </>
             )}
+          </button>
+          <button
+            onClick={handleOpenNoticeModal}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-600/20 border border-amber-500/40 hover:bg-amber-600/30 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Scale className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isNoticeLoading ? 'Loading Notice...' : 'Statutory Notice'}</span>
           </button>
           <span className="text-xs text-slate-400 font-mono">Dossier ID: DOS-{establishment.id}</span>
           {onBeginInspection && (
@@ -1316,6 +1345,18 @@ export const EstablishmentIntelligence: React.FC<EstablishmentIntelligenceProps>
         establishmentId={establishment.id}
         isOpen={isFeatureModalOpen}
         onClose={() => setIsFeatureModalOpen(false)}
+      />
+
+      {/* Statutory Notice Document Viewer & Export Modal */}
+      <StatutoryNoticeViewerModal
+        notice={activeNotice}
+        isOpen={isNoticeModalOpen}
+        onClose={() => setIsNoticeModalOpen(false)}
+        onUpdateStatus={async (noticeId, status, notes) => {
+          const updated = await updateNoticeStatus(noticeId, status, notes);
+          setActiveNotice(updated);
+        }}
+        isEmployerRole={false}
       />
 
     </div>

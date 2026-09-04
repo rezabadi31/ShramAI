@@ -14,10 +14,12 @@ import {
   Send,
   Loader2,
   ChevronRight,
+  Scale,
 } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
-import { ActiveRole, EmployerComplianceProfile } from '../types';
-import { getEmployerComplianceProfile, getComprehensiveExplanation, queryLabourRAG } from '../services/api';
+import { StatutoryNoticeViewerModal } from '../components/StatutoryNoticeViewerModal';
+import { ActiveRole, EmployerComplianceProfile, StatutoryNotice } from '../types';
+import { getEmployerComplianceProfile, getComprehensiveExplanation, queryLabourRAG, getEstablishmentNotices, updateNoticeStatus } from '../services/api';
 
 interface EmployerDashboardProps {
   onNavigate: (role: ActiveRole) => void;
@@ -81,10 +83,14 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
   const [ragQuery, setRagQuery] = useState('');
   const [ragAnswer, setRagAnswer] = useState<string | null>(null);
   const [isRagLoading, setIsRagLoading] = useState(false);
+  const [pendingNotices, setPendingNotices] = useState<StatutoryNotice[]>([]);
+  const [selectedNotice, setSelectedNotice] = useState<StatutoryNotice | null>(null);
+  const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
 
   useEffect(() => {
     getEmployerComplianceProfile("EST-001").then(setProfile).catch(console.error);
     getComprehensiveExplanation("EST-001").then(setRemediation).catch(console.error);
+    getEstablishmentNotices("EST-001").then(setPendingNotices).catch(console.error);
   }, []);
 
   const handleRagQuery = async (q: string) => {
@@ -147,6 +153,39 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
           </button>
         </div>
       </div>
+
+      {/* Statutory Show Cause Notice Action Alert Banner */}
+      {pendingNotices.length > 0 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-rose-950/50 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+              <Scale className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  Formal Statutory Notice Received ({pendingNotices[0].notice_number})
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                  {pendingNotices[0].status}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Action required on or before <strong className="text-amber-400 font-mono">{pendingNotices[0].response_deadline}</strong>. Cure violations or apply for Sec 56 compounding.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setSelectedNotice(pendingNotices[0]);
+              setIsNoticeModalOpen(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shrink-0 cursor-pointer shadow-md shadow-amber-500/20"
+          >
+            View Notice & Respond
+          </button>
+        </div>
+      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -498,6 +537,19 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
 
         </div>
       </div>
+
+      {/* Statutory Notice Viewer Modal (Employer Mode) */}
+      <StatutoryNoticeViewerModal
+        notice={selectedNotice}
+        isOpen={isNoticeModalOpen}
+        onClose={() => setIsNoticeModalOpen(false)}
+        onUpdateStatus={async (noticeId, status, notes) => {
+          const updated = await updateNoticeStatus(noticeId, status, notes);
+          setSelectedNotice(updated);
+          setPendingNotices(prev => prev.map(n => n.notice_id === noticeId ? updated : n));
+        }}
+        isEmployerRole={true}
+      />
     </div>
   );
 };

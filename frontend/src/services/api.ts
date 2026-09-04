@@ -7,6 +7,8 @@ import {
   NormalizedDocumentDossier,
   LabourCodeSummary,
   EstablishmentTimeline,
+  StatutoryNotice,
+  GenerateNoticeRequest,
 } from '../types';
 import { MOCK_ESTABLISHMENTS, MOCK_DOSSIER } from './mockData';
 
@@ -1387,5 +1389,100 @@ export async function getEstablishmentTimeline(establishmentId: string = "EST-00
         }
       ]
     };
+  }
+}
+
+export async function getEstablishmentNotices(establishmentId: string = "EST-001"): Promise<StatutoryNotice[]> {
+  try {
+    const response = await fetch(`${API_BASE}/notices/establishment/${establishmentId}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    return [
+      {
+        notice_id: "NOT-2024-001",
+        notice_number: "CLC/PUNE/2024/SCN-00194",
+        notice_type: "SHOW_CAUSE",
+        establishment_id: establishmentId,
+        establishment_name: establishmentId === "EST-002" ? "Western Logistics Hub" : "ABC Manufacturing Pvt Ltd",
+        registration_number: "LIN-MH-PUN-091244",
+        issuing_authority: "Office of the Deputy Chief Labour Commissioner (Central), Pune",
+        issuing_officer: "INS-OFFICER-37 (Central Sphere)",
+        issue_date: "2024-07-05",
+        response_deadline: "2024-07-19",
+        status: "ISSUED",
+        summary_narrative: "Statutory show cause notice issued regarding minimum wage underpayment, muster roll headcount discrepancy, and mandatory safety committee non-compliance.",
+        violations: [
+          {
+            statutory_code: "Code on Wages, 2019",
+            section: "Section 54(1) read with Section 6(1)",
+            finding_description: "Payment of wages below statutory floor rate for 3 Shift B workers.",
+            prescribed_fine_inr: 50000,
+            rectification_window_days: 7
+          },
+          {
+            statutory_code: "Code on Wages, 2019",
+            section: "Section 50 read with Rule 19",
+            finding_description: "Failure to reconcile Form D Attendance Muster Roll with Form B Wage Register (5 unaccounted workers).",
+            prescribed_fine_inr: 20000,
+            rectification_window_days: 10
+          },
+          {
+            statutory_code: "OSHWC Code, 2020",
+            section: "Section 96 read with Section 23",
+            finding_description: "Non-constitution of mandatory Joint Safety Committee for manufacturing facility exceeding 250 workers.",
+            prescribed_fine_inr: 200000,
+            rectification_window_days: 14
+          }
+        ],
+        total_penalty_exposure_inr: 270000,
+        compoundable: true,
+        digital_signature_hash: "SHA256:7f90ab1288cde90172bf4341991823ab",
+        formal_legal_text: `GOVERNMENT OF INDIA\nMINISTRY OF LABOUR AND EMPLOYMENT\nOFFICE OF THE DEPUTY CHIEF LABOUR COMMISSIONER (CENTRAL)\n\nNOTICE REF: CLC/PUNE/2024/SCN-00194\nDATE: 05-07-2024\n\nTO: The Occupier / Principal Employer, ABC Manufacturing Pvt Ltd\nLIN: LIN-MH-PUN-091244\n\nSUBJECT: STATUTORY SHOW CAUSE NOTICE UNDER CODE ON WAGES, 2019 (SECTION 50 & 54) AND OSHWC CODE, 2020 (SECTION 96)\n\nWHEREAS, an inspection conducted by the ShramAI Digital Compliance Engine under the supervision of Labour Enforcement Officer INS-OFFICER-37 revealed statutory non-compliances:\n1. Payment below minimum floor wage (COW Sec 54(1)) - Fine: INR 50,000\n2. Muster roll reconciliation gap (COW Sec 50) - Fine: INR 20,000\n3. Non-constitution of Safety Committee (OSHWC Sec 96) - Fine: INR 200,000\n\nYOU ARE HEREBY REQUIRED TO SHOW CAUSE within 14 days why penal proceedings should not be instituted. You may also apply for compounding under Section 56 of the Code on Wages.`,
+        metadata: { delivery_mode: "DIGITAL_SHRAM_SUVIDHA" }
+      }
+    ];
+  }
+}
+
+export async function getStatutoryNotice(noticeId: string): Promise<StatutoryNotice> {
+  try {
+    const response = await fetch(`${API_BASE}/notices/${noticeId}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    const fallbackList = await getEstablishmentNotices("EST-001");
+    return fallbackList[0];
+  }
+}
+
+export async function generateStatutoryNotice(req: GenerateNoticeRequest): Promise<StatutoryNotice> {
+  try {
+    const response = await fetch(`${API_BASE}/notices/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    const fallbackList = await getEstablishmentNotices(req.establishment_id);
+    return fallbackList[0];
+  }
+}
+
+export async function updateNoticeStatus(noticeId: string, status: string, notes?: string): Promise<StatutoryNotice> {
+  try {
+    const response = await fetch(`${API_BASE}/notices/${noticeId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, response_notes: notes })
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    const notice = await getStatutoryNotice(noticeId);
+    notice.status = status;
+    return notice;
   }
 }
