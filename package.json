@@ -4,7 +4,7 @@
   "private": true,
   "description": "ShramAI: AI-Powered Labour Compliance & Inspection Intelligence",
   "scripts": {
-    "build": "npm --prefix frontend run build",
+    "build": "npm install --prefix frontend && npm --prefix frontend run build",
     "dev": "npm --prefix frontend run dev"
   }
 }
