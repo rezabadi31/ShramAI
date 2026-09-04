@@ -739,3 +739,40 @@ export type GenerateNoticeRequest = {
   issuing_officer?: string;
   custom_instructions?: string;
 };
+
+export type FeatureDriftMetric = {
+  feature_name: string;
+  baseline_mean: number;
+  current_mean: number;
+  psi_score: number;
+  drift_status: 'NO_DRIFT' | 'MODERATE_DRIFT' | 'SIGNIFICANT_DRIFT' | string;
+  p_value: number;
+};
+
+export type ModelDriftReport = {
+  report_id: string;
+  timestamp: string;
+  model_version: string;
+  overall_psi: number;
+  drift_alert_level: 'GREEN' | 'YELLOW' | 'RED' | string;
+  inspections_ingested_count: number;
+  inspector_override_rate: number;
+  total_feedback_records: number;
+  feature_drifts: FeatureDriftMetric[];
+  calibration_brier_score: number;
+  recommended_action: string;
+  metadata?: Record<string, any>;
+};
+
+export type RetrainTriggerResponse = {
+  job_id: string;
+  status: string;
+  trained_at: string;
+  samples_used: number;
+  feedback_samples_incorporated: number;
+  champion_auc: number;
+  challenger_auc: number;
+  deployed_model: string;
+  improvement_delta: number;
+  message: string;
+};

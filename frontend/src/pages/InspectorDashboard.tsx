@@ -12,12 +12,14 @@ import {
   Database,
   Award,
   CalendarCheck,
-  Send
+  Send,
+  Activity,
 } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
 import { RiskBadge } from '../components/RiskBadge';
 import { SyntheticDataLabModal } from '../components/SyntheticDataLabModal';
 import { ModelBenchmarkModal } from '../components/ModelBenchmarkModal';
+import { ModelDriftModal } from '../components/ModelDriftModal';
 import { Establishment, ActiveRole, PrioritizedEstablishmentItem } from '../types';
 import { getPrioritizedQueue, scheduleInspectionBatch } from '../services/api';
 
@@ -38,6 +40,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isDataLabOpen, setIsDataLabOpen] = useState(false);
   const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
+  const [isDriftModalOpen, setIsDriftModalOpen] = useState(false);
   const [prioritizedQueue, setPrioritizedQueue] = useState<PrioritizedEstablishmentItem[]>([]);
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledBatchMessage, setScheduledBatchMessage] = useState<string | null>(null);
@@ -106,6 +109,13 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           >
             <Database className="w-3.5 h-3.5 text-cyan-400" />
             <span>Synthetic Data Lab</span>
+          </button>
+          <button
+            onClick={() => setIsDriftModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 text-xs border border-purple-500/30 transition cursor-pointer"
+          >
+            <Activity className="w-3.5 h-3.5 text-purple-400" />
+            <span>Drift & Retraining</span>
           </button>
           <button
             onClick={() => {
@@ -379,6 +389,12 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       <ModelBenchmarkModal
         isOpen={isBenchmarkOpen}
         onClose={() => setIsBenchmarkOpen(false)}
+      />
+
+      {/* Closed-Loop Retraining & Model Drift Modal */}
+      <ModelDriftModal
+        isOpen={isDriftModalOpen}
+        onClose={() => setIsDriftModalOpen(false)}
       />
 
     </div>
