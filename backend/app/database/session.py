@@ -14,7 +14,13 @@ def get_async_database_url(raw_url: str) -> str:
     """
     Normalizes PostgreSQL connection string for async SQLAlchemy engine.
     Render and Cloud PaaS providers provide 'postgres://' or 'postgresql://' by default.
+    Also handles ephemeral /tmp path when running SQLite in serverless environments (Vercel).
     """
+    import os
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        if "shram.db" in raw_url and "/tmp" not in raw_url:
+            raw_url = raw_url.replace("./shram.db", "/tmp/shram.db").replace("shram.db", "/tmp/shram.db")
+
     if raw_url.startswith("postgres://"):
         return raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
     if raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+asyncpg://"):

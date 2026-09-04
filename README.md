@@ -14,36 +14,59 @@
 
 ## 🏛️ Deployment Architecture
 
+ShramAI supports **two production deployment models**:
+
+### Model A: 100% Unified Vercel Deployment (Recommended for Instant 1-Click Hosting)
+Everything (React Frontend + FastAPI Backend Serverless Function) is hosted under a **single Vercel project and single domain** with zero CORS configuration required:
+
 ```text
-                 PUBLIC INTERNET
-                       │
-                       ▼
-              ┌─────────────────┐
-              │     VERCEL      │
-              │ React / Vite UI │
-              └────────┬────────┘
-                       │
-                HTTPS API calls (VITE_API_BASE_URL)
-                       │
-                       ▼
-              ┌─────────────────┐
-              │     RENDER      │
-              │ FastAPI Backend │
-              └────────┬────────┘
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
-        PostgreSQL          AI/OCR APIs
-        + pgvector       (Server-Side Only)
+                           PUBLIC INTERNET
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │      VERCEL PROJECT     │
+                    │  (https://shram-ai.com) │
+                    ├────────────┬────────────┤
+                    │  Frontend  │ Python API │
+                    │   (Vite)   │ (FastAPI)  │
+                    │  /(.*)     │ /api/(.*)  │
+                    └────────────┴────────────┘
 ```
 
-- **Frontend (Vercel)**: React 18, TypeScript, Vite, SPA routing via `vercel.json`. Connects to Render backend via `VITE_API_BASE_URL`.
-- **Backend (Render)**: Python 3.11, FastAPI, Uvicorn, structured multi-agent engine, JWT authentication with role-based access control (Employer & Inspector).
-- **Database (Render PostgreSQL)**: PostgreSQL with asyncpg driver, automated schema migrations, and SQLite fallback for local development.
+### Model B: Hybrid Architecture (Vercel Frontend + Render Backend)
+Frontend on Vercel and long-running stateful FastAPI backend + PostgreSQL on Render:
+
+```text
+     VERCEL (React Frontend)  ──────HTTPS API──────►  RENDER (FastAPI Backend + Postgres)
+```
 
 ---
 
-## 🚀 Cloud Deployment Guide
+## ⚡ 1-Click Unified Vercel Deployment (Deploy Everything on Vercel)
+
+Deploy both the React frontend and FastAPI backend together on Vercel in under 2 minutes:
+
+1. **Sign in to Vercel** ([vercel.com](https://vercel.com)).
+2. Click **Add New...** > **Project**.
+3. Select your GitHub repository: `rezabadi31/ShramAI`.
+4. Leave **Root Directory** as `./` (Repository root — do not select a subfolder).
+5. Vercel will automatically detect the settings configured in `vercel.json`:
+   - **Build Command**: `npm --prefix frontend run build`
+   - **Output Directory**: `frontend/dist`
+   - **Serverless Function**: `api/index.py` (FastAPI backend)
+6. *(Optional)* Add Environment Variables in Vercel:
+   - `SECRET_KEY`: Enter any random 32+ character string (or let default development key run for demo).
+   - `DATABASE_URL`: *(Optional)* Neon / Supabase / Render Postgres URL. If omitted, uses fast serverless fallback automatically.
+7. Click **Deploy**.
+8. **Done!** Your full-stack ShramAI application will be live at:  
+   `https://your-shram-project.vercel.app`  
+   - UI: `https://your-shram-project.vercel.app`  
+   - API Docs: `https://your-shram-project.vercel.app/docs`  
+   - Health Probe: `https://your-shram-project.vercel.app/health`
+
+---
+
+## 🚀 Alternative Hybrid Deployment Guide (Render + Vercel)
 
 ### Part 1: Backend Deployment on Render
 
@@ -73,7 +96,7 @@
 
 ---
 
-### Part 2: Frontend Deployment on Vercel
+### Part 2: Frontend-Only Deployment on Vercel (Hybrid Model)
 
 1. **Sign in to Vercel** ([vercel.com](https://vercel.com)).
 2. **Import Git Repository**: Select `shram-project`.

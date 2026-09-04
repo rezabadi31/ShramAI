@@ -15,6 +15,17 @@ class Settings(BaseSettings):
     def model_post_init(self, __context) -> None:
         if self.JWT_SECRET:
             self.SECRET_KEY = self.JWT_SECRET
+        import os
+        if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            if not self.UPLOAD_DIR.startswith("/tmp"):
+                self.UPLOAD_DIR = "/tmp/data/raw"
+            if not self.PROCESSED_DIR.startswith("/tmp"):
+                self.PROCESSED_DIR = "/tmp/data/processed"
+            try:
+                os.makedirs(self.UPLOAD_DIR, exist_ok=True)
+                os.makedirs(self.PROCESSED_DIR, exist_ok=True)
+            except Exception:
+                pass
 
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./shram.db"  # Fallback for lightweight local dev without Postgres running
