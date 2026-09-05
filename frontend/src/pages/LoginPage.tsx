@@ -39,66 +39,114 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setLoading(true);
     setError('');
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Required fields validation
+    if (!cleanEmail || !password) {
+      setError('Please provide both email and password.');
+      setLoading(false);
+      return;
+    }
+
     try {
       let data: any = null;
+
       try {
         const response = await fetch(`${API_BASE}/auth/login/json`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password }),
+          body: JSON.stringify({ email: cleanEmail, password }),
         });
 
         if (response.ok) {
           data = await response.json();
         } else if (response.status === 401) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || 'Incorrect email or password.');
+          throw new Error(errorData.detail || 'Invalid credentials. Please verify your email and password.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied: Unauthorized role or insufficient permissions.');
         } else {
-          console.warn(`Backend returned HTTP ${response.status}, evaluating authentication fallback`);
+          console.warn(`Backend returned HTTP ${response.status}, evaluating fallback credentials`);
         }
-      } catch (fetchErr: any) {
-        if (fetchErr.message && fetchErr.message.includes('Incorrect email or password')) {
-          throw fetchErr;
+      } catch (networkOrApiErr: any) {
+        // Re-throw explicit 401 / 403 authentication rejections immediately
+        if (
+          networkOrApiErr.message &&
+          (networkOrApiErr.message.includes('Invalid credentials') ||
+           networkOrApiErr.message.includes('Incorrect email') ||
+           networkOrApiErr.message.includes('Access denied'))
+        ) {
+          throw networkOrApiErr;
         }
-        console.warn('Backend API connection issue, evaluating fallback:', fetchErr);
+        console.warn('Backend service connection issue:', networkOrApiErr);
       }
 
-      // If backend was not reachable or had a transient serverless error, authenticate demo credentials
-      if (!data) {
-        const cleanEmail = email.trim().toLowerCase();
-        if (selectedRole === 'employer' && (cleanEmail === 'employer@abcindustries.com' || cleanEmail.includes('employer')) && (password === 'Employer@123' || password.length >= 6)) {
-          data = {
-            email: 'employer@abcindustries.com',
-            role: 'employer',
-            name: 'Rajiv Mehra',
-            access_token: 'shram-verified-employer-token',
-            establishment_id: 'EST-001',
-          };
-        } else if (selectedRole === 'inspector' && (cleanEmail === 'inspector@shram.gov.in' || cleanEmail.includes('inspector')) && (password === 'Inspector@123' || password.length >= 6)) {
-          data = {
-            email: 'inspector@shram.gov.in',
-            role: 'inspector',
-            name: 'S. K. Sharma',
-            access_token: 'shram-verified-inspector-token',
-          };
+      // If backend API succeeded with token data
+      if (data && data.access_token) {
+        const userRole = (data.role || '').toLowerCase() as Role;
+
+        // Strict role validation
+        if (selectedRole === 'employer' && userRole !== 'employer') {
+          throw new Error('Unauthorized role: Your account does not have Employer permissions.');
+        }
+        if (selectedRole === 'inspector' && userRole !== 'inspector' && userRole !== 'admin') {
+          throw new Error('Unauthorized role: Your account does not have Inspector permissions.');
+        }
+
+        login(data.email, userRole, data.name, data.access_token, data.establishment_id);
+        onSuccess(selectedRole);
+        return;
+      }
+
+      // If backend was unreachable or returned serverless error (e.g. 500/502/504), validate credentials locally
+      if (selectedRole === 'inspector') {
+        if (cleanEmail === 'inspector@shram.gov.in') {
+          if (password === 'Inspector@123') {
+            login(
+              'inspector@shram.gov.in',
+              'inspector',
+              'S. K. Sharma',
+              'shram-verified-inspector-token',
+              undefined
+            );
+            onSuccess('inspector');
+            return;
+          } else {
+            throw new Error('Invalid credentials: Incorrect password for Inspector profile.');
+          }
         } else {
-          throw new Error('Authentication failed. Please verify your credentials or use the demo presets.');
+          if (cleanEmail.includes('employer')) {
+            throw new Error('Unauthorized role: Employer account cannot sign in to the Labour Inspectorate portal.');
+          }
+          throw new Error('Invalid credentials: Email not recognized. Please use the pre-filled Inspector demo account.');
+        }
+      } else if (selectedRole === 'employer') {
+        if (cleanEmail === 'employer@abcindustries.com') {
+          if (password === 'Employer@123') {
+            login(
+              'employer@abcindustries.com',
+              'employer',
+              'Rajiv Mehra',
+              'shram-verified-employer-token',
+              'EST-001'
+            );
+            onSuccess('employer');
+            return;
+          } else {
+            throw new Error('Invalid credentials: Incorrect password for Employer profile.');
+          }
+        } else {
+          if (cleanEmail.includes('inspector')) {
+            throw new Error('Unauthorized role: Inspector account cannot sign in to the Employer portal.');
+          }
+          throw new Error('Invalid credentials: Email not recognized. Please use the pre-filled Employer demo account.');
         }
       }
 
-      // Strict role verification
-      const userRole = data.role as Role;
-      if (selectedRole === 'employer' && userRole !== 'employer') {
-        throw new Error('Access Restricted — Your account is not an Employer account.');
-      }
-      if (selectedRole === 'inspector' && userRole !== 'inspector' && userRole !== 'admin') {
-        throw new Error('Access Restricted — Your account does not have Inspector permissions.');
-      }
-
-      login(data.email, userRole, data.name, data.access_token, data.establishment_id);
-      onSuccess(selectedRole);
+      // Default error for unhandled combination
+      throw new Error('Authentication failed. Please verify credentials.');
     } catch (err: any) {
-      setError(err.message || 'Authentication error. Please try again.');
+      setError(err.message || 'Authentication error. Please verify network and credentials.');
     } finally {
       setLoading(false);
     }

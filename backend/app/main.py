@@ -38,8 +38,10 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include API Routers
+    # Include API Routers (support both /api/v1 and /v1 for universal Vercel rewrite compatibility)
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    if settings.API_V1_PREFIX != "/v1":
+        app.include_router(api_router, prefix="/v1")
 
     @app.get("/", tags=["Root"])
     async def root():
