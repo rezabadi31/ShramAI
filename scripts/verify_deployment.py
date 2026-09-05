@@ -97,9 +97,9 @@ def run_checks():
 
     # Check 7: Cloud PaaS Blueprints
     total_checks += 1
-    cloud_files = [root_dir / "render.yaml", root_dir / "railway.json"]
+    cloud_files = [root_dir / "vercel.json", root_dir / "railway.json"]
     cloud_ok = all(f.exists() for f in cloud_files)
-    print(f"{check_mark(cloud_ok)} Cloud Blueprints: Render & Railway manifests verified")
+    print(f"{check_mark(cloud_ok)} Cloud Blueprints: Vercel & Railway manifests verified")
     if cloud_ok: checks_passed += 1
 
     # Check 8: Fast-API Application Import Test

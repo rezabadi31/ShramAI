@@ -1,16 +1,15 @@
 /**
  * ShramAI Centralized API Configuration.
  * 
- * Unified Vercel Full-Stack Architecture:
- * Frontend and Backend are deployed together on Vercel.
- * API endpoints are served under the same origin at /api/v1 and /health.
- * All Render backend references have been removed per user specification.
+ * Unified 100% Vercel Architecture:
+ * Frontend and Backend are deployed together under the same origin on Vercel.
+ * API endpoints are served relative to origin at /api/v1 and /health.
  */
 
-// Strip trailing slashes from configured base URL, ignoring obsolete Render URLs
+// Strip trailing slashes from configured base URL
 const rawEnvUrl = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
-const isRenderUrl = rawEnvUrl.includes('onrender.com') || rawEnvUrl.includes('render');
-const envBaseUrl = isRenderUrl ? '' : rawEnvUrl;
+const envBaseUrl = rawEnvUrl;
+
 
 // Base URL for the backend server root (empty in unified Vercel deployment)
 export const BACKEND_ROOT_URL = envBaseUrl;

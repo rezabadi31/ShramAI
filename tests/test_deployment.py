@@ -89,7 +89,7 @@ def test_deployment_packaging_files_integrity():
 
     # CI/CD and PaaS Blueprints
     assert (root_dir / ".github" / "workflows" / "ci-cd.yml").exists()
-    assert (root_dir / "render.yaml").exists()
+    assert (root_dir / "vercel.json").exists()
     assert (root_dir / "railway.json").exists()
 
     # Scripts & Documentation
