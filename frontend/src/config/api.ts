@@ -1,8 +1,8 @@
 /**
  * ShramAI Centralized API Configuration.
  * 
- * Unified 100% Vercel Architecture:
- * Frontend and Backend are deployed together under the same origin on Vercel.
+ * Unified 100% Netlify Architecture:
+ * Frontend and Backend are deployed together under the same origin on Netlify.
  * API endpoints are served relative to origin at /api/v1 and /health.
  */
 

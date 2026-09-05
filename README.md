@@ -6,21 +6,21 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)]()
 [![Vite](https://img.shields.io/badge/Vite-5.2.11-purple.svg)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
-[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black.svg)]()
+[![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7.svg)]()
 
 ---
 
-## 🏛️ Production Deployment Architecture (100% Vercel Unified)
+## 🏛️ Production Deployment Architecture (100% Netlify Unified)
 
-ShramAI is deployed **100% on Vercel** as a unified full-stack web application. The React single-page application and the FastAPI serverless backend are hosted under a **single Vercel project and domain** with zero cross-origin configuration required:
+ShramAI is deployed **100% on Netlify** as a unified web application. The React SPA and the serverless functions run together under a **single Netlify domain** with zero cross-origin configuration required:
 
 ```text
                            PUBLIC INTERNET
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │      VERCEL PROJECT     │
-                    │ (https://*.vercel.app)  │
+                    │     NETLIFY PROJECT     │
+                    │ (https://*.netlify.app) │
                     ├────────────┬────────────┤
                     │  Frontend  │ Python API │
                     │   (Vite)   │ (FastAPI)  │
@@ -28,15 +28,15 @@ ShramAI is deployed **100% on Vercel** as a unified full-stack web application. 
                     └────────────┴────────────┘
 ```
 
-- **Frontend**: High-performance React 18 + TypeScript + TailwindCSS SPA served directly from Vercel's global CDN Edge Network.
-- **Backend**: Python 3.11 serverless functions handling `/api/v1/*` endpoints, JWT authentication, statutory labour compliance knowledge RAG, and ML risk scoring.
-- **Unified Routing**: Configured via `vercel.json` with zero external service dependencies.
+- **Frontend**: High-performance React 18 + TypeScript + TailwindCSS SPA served from Netlify's global Edge CDN.
+- **Backend / API**: Serverless functions in `netlify/functions/` handling `/api/v1/*` endpoints, JWT authentication, statutory labour compliance RAG, and ML risk scoring.
+- **Unified Routing**: Handled via `netlify.toml` and `_redirects` with zero external service dependencies.
 
 ---
 
-## ⚡ 1-Click Vercel Deployment Guide
+## ⚡ 1-Click Netlify Deployment Guide
 
-Deploy the entire ShramAI application on Vercel in 3 simple steps:
+Deploy the entire ShramAI application on Netlify in 3 simple steps:
 
 ### Step 1: Push Repository to GitHub
 Ensure the codebase is pushed to your GitHub repository:
@@ -44,26 +44,21 @@ Ensure the codebase is pushed to your GitHub repository:
 git push origin main
 ```
 
-### Step 2: Import into Vercel
-1. Sign in to your [Vercel Dashboard](https://vercel.com/dashboard).
-2. Click **Add New...** > **Project**.
-3. Select your repository: `ShramAI`.
-4. Configure the project:
-   - **Framework Preset**: `Other` (or leave default Vite)
-   - **Root Directory**: `./` (Repository root — leave default)
-   - **Build Command**: `npm install --prefix frontend && npm --prefix frontend run build`
-   - **Output Directory**: `frontend/dist`
-5. *(Optional)* Add Environment Variables:
-   | Variable | Recommended Value | Description |
-   | :--- | :--- | :--- |
-   | `ENVIRONMENT` | `production` | Production mode flag |
-   | `SECRET_KEY` | *(Any 32+ char string)* | JWT signature key |
+### Step 2: Import into Netlify
+1. Sign in to your [Netlify Dashboard](https://app.netlify.com).
+2. Click **Add new site** > **Import an existing project**.
+3. Select **GitHub** and choose your repository: `ShramAI`.
+4. Netlify will automatically detect the settings configured in `netlify.toml`:
+   - **Base directory**: *(leave empty / root)*
+   - **Build command**: `npm install --prefix frontend && npm --prefix frontend run build`
+   - **Publish directory**: `frontend/dist`
+   - **Functions directory**: `netlify/functions`
+5. Click **Deploy ShramAI**.
 
-### Step 3: Click Deploy
-Vercel will build the frontend, package the serverless API routes, and deploy the application.
-- **Frontend App**: `https://<your-project>.vercel.app`
-- **Health Check**: `https://<your-project>.vercel.app/health`
-- **Interactive API Docs**: `https://<your-project>.vercel.app/docs`
+### Step 3: Done!
+Netlify will build the frontend, package the serverless API routes, and deploy the application.
+- **Application URL**: `https://<your-site-name>.netlify.app`
+- **Health Check**: `https://<your-site-name>.netlify.app/health`
 
 ---
 
@@ -122,5 +117,4 @@ npm --prefix frontend run build
 
 1. **Zero External Backend Leakage**: All authentication and compliance intelligence requests route securely through same-origin relative URLs (`/api/v1/*`).
 2. **Serverless Ephemeral Storage**: SQLite database falls back to `/tmp/shram.db` in serverless environments to ensure read-only Lambda execution environments never crash.
-3. **CORS Hardening**: Dynamically binds allowed origins for local development and all `*.vercel.app` production domains.
-4. **Resilient Authentication**: In-memory verified credentials guarantee instantaneous authentication response times even during cold starts.
+3. **Resilient Authentication**: In-memory verified credentials guarantee instantaneous authentication response times even during cold starts.
