@@ -1,6 +1,6 @@
 """
 Vercel Serverless Function Entry Point for ShramAI FastAPI Application.
-Exposes the ASGI app instance for Vercel Python Runtime.
+Exposes both ASGI `app` and Mangum `handler` for AWS Lambda / Vercel Python Runtime.
 """
 import os
 import sys
@@ -39,3 +39,9 @@ except Exception as e:
             }
         )
 
+# Support Mangum handler for Lambda/Vercel serverless execution
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except Exception:
+    handler = app
